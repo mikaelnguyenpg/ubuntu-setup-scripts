@@ -22,24 +22,27 @@ echo " - Running: setup-flatpak.sh"
 chmod +x ubuntu_setup-flatpak.sh
 ./ubuntu_setup-flatpak.sh
 
-sudo snap install ghostty --classic
-sudo snap install code --classic
-sudo snap install webstorm --classic
+# Snap: apps
+snap list | grep -q "ghostty " || sudo snap install ghostty --classic
+snap list | grep -q "code " || sudo snap install code --classic
+snap list | grep -q "webstorm " || sudo snap install webstorm --classic
 # Ubuntu: Click to minimize
-# gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize-or-previews'
-# Ubuntu: Install Virtual-machine
-if ! command -v kvm >/dev/null 2>&1; then
-  sudo nala install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent spice-vdagent
-fi
+gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize-or-previews'
+# KVM: Virtual-machine
+command -v kvm >/dev/null || sudo nala install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent spice-vdagent
 # Ubuntu: Install Nvidia drivers
-sudo ubuntu-drivers devices && sudo ubuntu-drivers autoinstall
+command -v nvidia-smi >/dev/null || sudo ubuntu-drivers devices && sudo ubuntu-drivers autoinstall
+# Pyenv: required dependencies
+sudo nala install build-essential libssl-dev zlib1g-dev \
+  libbz2-dev libreadline-dev libsqlite3-dev \
+  libncursesw5-dev xz-utils tk-dev \
+  libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 
 # Ubuntu: Cleanup nix & apt
 nix-collect-garbage -d
 
 sudo nala autoremove -y
 sudo nala clean
-
 
 # Setup projects
 ./ubuntu_setup-proj.sh
