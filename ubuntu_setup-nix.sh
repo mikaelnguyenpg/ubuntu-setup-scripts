@@ -1,11 +1,11 @@
 cd ~/.config && pwd
 
 # Nix: Install
-if ! command -v nix >/dev/null 2>&1; then
-  sh <(curl -L https://nixos.org/nix/install) --no-daemon
-else
-  echo " - Nix already exists"
-fi
+# if ! command -v nix >/dev/null 2>&1; then
+  # sh <(curl -L https://nixos.org/nix/install) --no-daemon
+# else
+  # echo " - Nix already exists"
+# fi
 
 # Nix: Enable experimental features
 if [ ! -f nix/nix.conf ]; then
@@ -18,11 +18,11 @@ fi
 # Nix: Install Home-manager
 nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 nix-channel --update
-# if [ ! -f home-manager/home.nix ]; then
-#   nix-shell '<home-manager>' -A install
-# else
-#   echo " - home-manager/home.nix already exists"
-# fi
+if [ ! -f home-manager/home.nix ]; then
+  nix-shell '<home-manager>' -A install
+else
+  echo " - home-manager/home.nix already exists"
+fi
 
 # Nix: Generate flake.nix & home.nix
 home-manager init
