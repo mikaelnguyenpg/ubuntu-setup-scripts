@@ -8,7 +8,7 @@ sudo nala install -y curl ibus-unikey ibus-chewing timeshift
 # Nix: install
 # wget https://gist.github.com/mikaelnguyenpg/69e0acd9039f58d77d2ca44bfffde5c2/raw -O ubuntu_setup-nix.sh
 chmod +x ubuntu_setup-nix.sh
-./ubuntu_setup-nix.sh
+./ubuntu_setup-nix.sh "eagle"
 
 # Pritunl: install
 echo " - Running: setup-pritunl.sh"

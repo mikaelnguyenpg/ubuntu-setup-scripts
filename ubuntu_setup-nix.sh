@@ -26,7 +26,8 @@ fi
 
 # Nix: Generate flake.nix & home.nix
 home-manager init
-wget https://gist.github.com/mikaelnguyenpg/73b0b6ff679f44bea01e075b8aa7eb92/raw -O home-manager/home.nix 
+wget https://gist.github.com/mikaelnguyenpg/73b0b6ff679f44bea01e075b8aa7eb92/raw -O home-manager/home.nix
+sed -i 's/eagle/$1/g' home-manager/home.nix
 
 # Nix: Setup system
 home-manager build
