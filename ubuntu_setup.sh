@@ -20,7 +20,7 @@ echo " - Running: setup-flatpak.sh"
 # Flatpak: install
 # wget https://gist.github.com/mikaelnguyenpg/3ccc19a0535c7d8c9e630a59f4f98287/raw -O ubuntu_setup-flatpak.sh
 chmod +x ubuntu_setup-flatpak.sh
-./ubuntu_setup-flatpak.sh
+# ./ubuntu_setup-flatpak.sh
 
 # Snap: apps
 snap list | grep -q "ghostty " || sudo snap install ghostty --classic

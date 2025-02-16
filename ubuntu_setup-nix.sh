@@ -1,11 +1,11 @@
 cd ~/.config && pwd
 
 # Nix: Install
-# if ! command -v nix >/dev/null 2>&1; then
-  # sh <(curl -L https://nixos.org/nix/install) --no-daemon
-# else
-  # echo " - Nix already exists"
-# fi
+if ! command -v nix >/dev/null 2>&1; then
+  sh <(curl -L https://nixos.org/nix/install) --no-daemon
+else
+  echo " - Nix already exists"
+fi
 
 # Nix: Enable experimental features
 if [ ! -f nix/nix.conf ]; then
@@ -26,8 +26,9 @@ fi
 
 # Nix: Generate flake.nix & home.nix
 home-manager init
-wget https://gist.github.com/mikaelnguyenpg/73b0b6ff679f44bea01e075b8aa7eb92/raw -O home-manager/home.nix
-sed -i 's/eagle/$1/g' home-manager/home.nix
+# wget https://gist.github.com/mikaelnguyenpg/73b0b6ff679f44bea01e075b8aa7eb92/raw -O home-manager/home.nix
+cp ~/.config/ubuntu-setup-scripts/home.nix ~/.config/home-manager/home.nix
+# sed -i "s/eagle/$1/g" home-manager/home.nix
 
 # Nix: Setup system
 home-manager build

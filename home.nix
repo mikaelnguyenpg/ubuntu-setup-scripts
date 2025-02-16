@@ -21,7 +21,7 @@ in {
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
-  home.packages = [
+  home.packages = with pkgs; [
     # # Adds the 'hello' command to your environment. It prints a friendly
     # # "Hello, world!" when run.
     # pkgs.hello
@@ -32,14 +32,37 @@ in {
     # # fonts?
     # (pkgs.nerdfonts.override { fonts = [ "FantasqueSansMono" ]; })
 
-    # # You can also create simple shell scripts directly inside your
+    # # You can also create simple shell scripts directly inside yhttps://www.youtube.com/watch?v=foHfWg3GsC4our
     # # configuration. For example, this adds a command 'my-hello' to your
     # # environment:
     # (pkgs.writeShellScriptBin "my-hello" ''
     #   echo "Hello, ${config.home.username}!"
     # '')
-    pkgs.httpie
-    pkgs.xclip
+    httpie
+    xclip
+
+    vlc
+    btop
+    cowsay
+    figlet
+    boxes
+    tldr
+    flameshot
+    # flatpak
+
+    nodejs_23
+    bun
+    # Language servers
+    typescript
+    typescript-language-server
+    tailwindcss-language-server
+    vscode-langservers-extracted
+    # Other tools (optional)
+    dprint
+    nodePackages.prettier
+    eslint
+    deno
+    emmet-ls
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
@@ -104,6 +127,25 @@ in {
     EDITOR = "hx";
   };
 
+  # Run in startup
+  services = {
+    flameshot.enable = true;
+    # - add to Ubuntu Settings > Keyboard > Keyboard Shortcuts > Custom Shortcuts > +
+    # Name: Flameshot
+    # Command: bash -c -- "flameshot gui > /dev/null"
+    # Shortcut: Fn + screenshot
+
+    # flatpak = {
+    #   enable = true;
+    #   remotes = [
+    #     { name = "flathub"; location = "https://flathub.org/repo/flathub.flatpakrepo"; }
+    #   ];
+    #   packages = [
+    #     "org.jousse.vincent.Pomodorolm"
+    #   ];
+    # };
+  };
+
   # Let Home Manager install and manage itself.
   programs = {
     home-manager.enable = true;
@@ -123,13 +165,26 @@ in {
     vim.enable = true;
     neovim.enable = true;
 
+    cmus.enable = true;
+    yt-dlp.enable = true;
+
     # ghostty.enable = true;
+    # https://theari.dev/blog/enhanced-helix-config/
+    # https://dev.to/morlinbrot/configure-helix-for-typescript-eslint-prettierdprint-582c
     helix = {
       enable = true;
       settings = {
         editor = {
+          # Show currently open buffers, only when more than one exists.
+          bufferline = "multiple";
+          # Highlight all lines with a cursor
+          cursorline = true;
+          # Use relative line numbers
           line-number = "relative";
+          # Show a ruler at column 80
           rulers = [80];
+          # Force the theme to show colors
+          true-color = true;
           # shell = ["zsh", "-c"];
         };
         editor.cursor-shape = {
@@ -137,12 +192,123 @@ in {
           normal = "block";
           select = "underline";
         };
+        editor.indent-guides = {
+          character = "╎";
+          render = true;
+        };
+        editor.lsp = {
+          # Disable automatically popups of signature parameter help
+          auto-signature-help = false;
+          # Show LSP messages in the status line
+          display-messages = true;
+        };
+        editor.statusline = {
+          left = ["mode" "spinner" "version-control" "file-name"];
+        };
+# Minimum severity to show a diagnostic after the end of a line
+        editor = {
+          end-of-line-diagnostics = "hint";
+        };
+        editor.inline-diagnostics = {
+          cursor-line = "error"; # Show inline diagnostics when the cursor is on the line
+          other-lines = "disable"; # Don't expand diagnostics unless the cursor is on the line
+        };
         editor.file-picker = {
           hidden = false;
         };
         keys.normal = {
           esc = [ "collapse_selection" "keep_primary_selection" ];
+          A-x = "extend_to_line_bounds";
+          X = "select_line_above";
         };
+        keys.select = {
+          A-x = "extend_to_line_bounds";
+          X = "select_line_above";
+        };
+      };
+      # extraPackages = [
+      #   pkgs.typescript
+      #   pkgs.dprint
+      #   pkgs.nodePackages.prettier
+      #   pkgs.eslint pkgs.deno
+      #   pkgs.typescript-language-server
+      #   pkgs.tailwindcss-language-server
+      #   pkgs.vscode-langservers-extracted
+      #   pkgs.emmet-ls
+      # ];
+      languages = {
+        language-server.typescript-language-server = with pkgs.nodePackages; {
+          command = "${typescript-language-server}/bin/typescript-language-server";
+          args = [ "--stdio" "--tsserver-path=${typescript}/lib/node_modules/typescript/lib" ];
+        };
+        # language = [{
+        #   name = "rust";
+        #   auto-format = false;
+        # }];
+        # language-server.eslint = {
+        #   command = "vscode-eslint-language-server";
+        #   args = ["--stdio"];
+        # };
+        # language-server.eslint.config = {
+        #   codeActionsOnSave = { mode = "all"; "source.fixAll.eslint" = true; };
+        #   format = { enable = true; };
+        #   nodePath = "";
+        #   quiet = false;
+        #   rulesCustomizations = [];
+        #   run = "onType";
+        #   validate = "on";
+        #   experimental = {};
+        #   problems = { shortenToSingleLine = false; };
+        # };
+        # language-server.eslint.config.codeAction = {
+        #   disableRuleComment = { enable = true; location = "separateLine"; };
+        #   showDocumentation = { enable = false; };
+        # };
+        # language-server.vscode-json-language-server.config = {
+        #   json = { validate = { enable = true; }; format = { enable = true; }; };
+        #   provideFormatter = true;
+        # };
+        # language-server.vscode-css-language-server.config = {
+        #   css = { validate = { enable = true; }; };
+        #   scss = { validate = { enable = true; }; };
+        #   less = { validate = { enable = true; }; };
+        #   provideFormatter = true;
+        # };
+        #
+        # typescript = {
+        #   language-servers = [ "typescript-language-server" "eslint" "emmet-ls" ];
+        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "typescript" ]; };
+        #   auto-format = true;
+        # };
+        # tsx = {
+        #   language-servers = [ "deno" "eslint" "emmet-ls" ];
+        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "tsx" ]; };
+        #   auto-format = true;
+        # };
+        # javascript = {
+        #   language-servers = [ "typescript-language-server" "eslint" "emmet-ls" ];
+        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "javascript" ]; };
+        #   auto-format = true;
+        # };
+        # jsx = {
+        #   language-servers = [ "typescript-language-server" "eslint" "emmet-ls" ];
+        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "jsx" ]; };
+        #   auto-format = true;
+        # };
+        # json = {
+        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "json" ]; };
+        #   auto-format = true;
+        # };
+        # html = {
+        #   language-servers = [ "vscode-html-language-server" "emmet-ls" ];
+        #   formatter = { command = "prettier"; args = [ "--parser" "html" ]; };
+        #   auto-format = true;
+        # };
+        # css = {
+        #   language-servers = [ "vscode-css-language-server" "emmet-ls" ];
+        #   formatter = { command = "prettier"; args = [ "--parser" "css" ]; };
+        #   auto-format = true;
+        # };
       };
     };
 
@@ -158,7 +324,12 @@ in {
         [
           tmuxPlugins.fzf-tmux-url
           # tmuxPlugins.sensible
-          tmuxPlugins.tmux-floax
+          {
+            plugin = tmuxPlugins.tmux-floax;
+            extraConfig = ''
+              set -g @floax-bind 'C-p' # Setting the main key to toggle the floating pane on and off
+            '';
+          }
           {
             plugin = tmuxPlugins.tokyo-night-tmux;
             extraConfig = ''
@@ -294,6 +465,9 @@ in {
         fcd() { cd "$(find . -type d -not -path '*/.*' | fzf)" && l; }
         f() { echo "$(find . -type f -not -path '*/.*' | fzf)" | pbcopy; }
         fv() { nvi "$(find . -type f -not -path '*/.*' | fzf)"; }
+        update() { sudo apt update && sudo apt upgrade }
+        ytdlvideo() { yt-dlp --format "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]" "$@" && lsa; }
+        ytdlaudio() { yt-dlp --extract-audio --audio-format mp3 --audio-quality 0 "$@" && lsa; }
       '';
     };
   };
