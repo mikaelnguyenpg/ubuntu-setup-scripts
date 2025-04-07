@@ -1,0 +1,87 @@
+- name: Install Nix, Home Manager with Flakes, and Configure Packages
+  hosts: localhost
+  become: no  # Single-user Nix install doesn’t require sudo
+  vars:
+    home_dir: "{{ ansible_env.HOME }}"  # Dynamically use actual home directory
+    nix_conf_dir: "{{ home_dir }}/.config/nix"
+    hm_dir: "{{ home_dir }}/.config/home-manager"
+  tasks:
+    # Install Nix with --no-daemon
+    - name: Install Nix in single-user mode
+      shell: |
+        curl -L https://nixos.org/nix/install | sh -s -- --no-daemon --yes
+      args:
+        creates: "{{ home_dir }}/.nix-profile/bin/nix"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/bin:/bin"
+      register: nix_install_result
+      changed_when: nix_install_result.rc == 0
+
+    # Source Nix environment
+    - name: Source Nix environment for Ansible session
+      shell: |
+        if [ -f "{{ home_dir }}/.nix-profile/etc/profile.d/nix.sh" ]; then
+          . "{{ home_dir }}/.nix-profile/etc/profile.d/nix.sh" && echo "NIX_SOURCED=1"
+        else
+          echo "Nix environment file not found" >&2
+          exit 1
+        fi
+      register: nix_source_result
+      changed_when: "'NIX_SOURCED=1' in nix_source_result.stdout"
+      failed_when: "'Nix environment file not found' in nix_source_result.stderr"
+
+    # Enable Flakes in nix.conf
+    - name: Ensure Nix config directory exists
+      file:
+        path: "{{ nix_conf_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Enable Flake support in nix.conf
+      lineinfile:
+        path: "{{ nix_conf_dir }}/nix.conf"
+        line: "experimental-features = nix-command flakes"
+        create: yes
+        mode: '0644'
+
+    # Install Home Manager
+    - name: Install Home Manager
+      shell: |
+        . {{ home_dir }}/.nix-profile/etc/profile.d/nix.sh
+        nix run github:nix-community/home-manager -- init --switch
+        # nix profile install github:nix-community/home-manager#home-manager
+        # nix-shell '<home-manager>' -A install
+        # nix-env -iA nixpkgs.home-manager
+      args:
+        creates: "{{ home_dir }}/.nix-profile/bin/home-manager"
+      environment:
+        PATH: "{{ home_dir }}/.nix-profile/bin:{{ ansible_env.PATH }}"
+
+    # Configure Home Manager with specified packages
+    - name: Configure home.nix with packages
+      copy:
+        src: "../home-manager/home.full.nix"
+        dest: "{{ hm_dir }}/home.nix"
+        mode: '0644'
+
+    # Apply Home Manager configuration
+    - name: Apply Home Manager configuration
+      shell: |
+        . {{ home_dir }}/.nix-profile/etc/profile.d/nix.sh
+        home-manager switch
+      args:
+        chdir: "{{ hm_dir }}"
+      environment:
+        PATH: "{{ home_dir }}/.nix-profile/bin:{{ ansible_env.PATH }}"
+      register: hm_switch_result
+      changed_when: "'activated' in hm_switch_result.stdout or hm_switch_result.rc == 0"
+
+    # Verify Home Manager installation
+    - name: Verify Home Manager version
+      command: "{{ home_dir }}/.nix-profile/bin/home-manager --version"
+      register: hm_version_result
+      changed_when: false
+
+    - name: Display Home Manager version
+      debug:
+        msg: "Home Manager installed and configured. Version: {{ hm_version_result.stdout }}"

@@ -1,0 +1,21 @@
+- name: Update and Upgrade Ubuntu System
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      register: apt_update_result
+
+    - name: Upgrade all packages to latest versions
+      apt:
+        upgrade: dist
+        force_apt_get: yes
+      when: apt_update_result.changed
+      register: apt_upgrade_result
+
+    - name: Notify user of completion
+      debug:
+        msg: "System update and upgrade completed successfully."
+      when: apt_update_result.changed or apt_upgrade_result is changed

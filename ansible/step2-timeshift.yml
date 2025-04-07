@@ -1,0 +1,65 @@
+- name: Install Timeshift and Create Full Backup with /home if No First Backup
+  hosts: localhost
+  become: yes  # Needed for system-level operations
+  vars:
+    home_dir: "{{ ansible_env.HOME }}"  # Dynamically use actual home directory
+    timeshift_config_file: "/etc/timeshift/timeshift.json"
+    timeshift_snapshot_dir: "/timeshift/snapshots"
+  tasks:
+    - name: Check if Timeshift is installed
+      command: dpkg -l | grep timeshift
+      register: timeshift_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install Timeshift if not present
+      apt:
+        name: timeshift
+        state: present
+      when: "'timeshift' not in timeshift_check.stdout"
+
+    - name: Ensure Timeshift config directory exists
+      file:
+        path: "/etc/timeshift"
+        state: directory
+        mode: '0755'
+
+    - name: Create or update Timeshift config to include /home
+      copy:
+        content: |
+          {
+            "backup_device_uuid" : "{{ ansible_facts['devices']['sda']['partitions']['sda1']['uuid'] | default(ansible_facts['mounts'][0]['uuid']) }}",
+            "btrfs_mode" : "false",
+            "include_btrfs_home" : "true"
+          }
+        dest: "{{ timeshift_config_file }}"
+        mode: '0644'
+      register: config_result
+
+    - name: Check if any Timeshift snapshots exist
+      stat:
+        path: "{{ timeshift_snapshot_dir }}"
+      register: snapshot_dir_stat
+
+    - name: Create full system and user backup if no snapshots exist
+      command: |
+        timeshift --create --comments "Initial full system and user backup" --rsync --verbose
+      when: not snapshot_dir_stat.stat.exists or (snapshot_dir_stat.stat.isdir and snapshot_dir_stat.stat.size == 0)
+      register: backup_result
+      changed_when: backup_result.rc == 0
+
+    - name: Display backup completion message
+      debug:
+        msg: |
+          Full backup (system + /home) created successfully.
+          Snapshot ID: {{ backup_result.stdout | regex_search('Snapshot saved successfully.*Tagged snapshot \'([^\']+)\'', '\\1') }}
+          Verify at: /timeshift/snapshots/
+          Future backups must be run manually with: sudo timeshift --create
+      when: backup_result.changed
+
+    - name: Display message if backup skipped
+      debug:
+        msg: |
+          First backup already exists. No automatic backup created.
+          Run manually for additional backups: sudo timeshift --create
+      when: snapshot_dir_stat.stat.exists and snapshot_dir_stat.stat.size > 0

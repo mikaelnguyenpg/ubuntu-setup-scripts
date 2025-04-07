@@ -1,0 +1,24 @@
+- name: Perform System Cleanup
+  hosts: localhost
+  become: no  # Default to no sudo, override per task
+  tasks:
+    - name: Clean up old Nix generations
+      command: nix-collect-garbage -d
+      args:
+        executable: /bin/bash  # Ensure proper shell environment
+      environment:
+        PATH: "{{ ansible_env.HOME }}/.nix-profile/bin:{{ ansible_env.PATH }}"
+      register: nix_cleanup_result
+      changed_when: "'deleted' in nix_cleanup_result.stdout"
+
+    - name: Remove unused packages with nala
+      command: nala autoremove -y
+      become: yes
+      register: nala_autoremove_result
+      changed_when: "'Removing' in nala_autoremove_result.stdout"
+
+    - name: Clean nala package cache
+      command: nala clean
+      become: yes
+      register: nala_clean_result
+      changed_when: "'Cleaning' in nala_clean_result.stdout or 'Cleaned' in nala_clean_result.stdout"

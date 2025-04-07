@@ -2,4 +2,5 @@ localhost:
   hosts:
     localhost:
       ansible_connection: local  # Run tasks locally
+      ansible_user: "eagle"
 

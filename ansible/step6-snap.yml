@@ -1,0 +1,24 @@
+- name: Install Snap and Snap Apps
+  hosts: localhost
+  become: yes  # Snap installs typically require sudo
+  vars:
+    snap_apps:
+      - name: ghostty
+        classic: yes
+      - name: code
+        classic: yes
+      - name: webstorm
+        classic: yes
+  tasks:
+    - name: Install Snapd
+      apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Install Snap applications
+      snap:
+        name: "{{ item.name }}"
+        classic: "{{ item.classic }}"
+        state: present
+      loop: "{{ snap_apps }}"

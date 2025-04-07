@@ -226,89 +226,11 @@ in {
           X = "select_line_above";
         };
       };
-      # extraPackages = [
-      #   pkgs.typescript
-      #   pkgs.dprint
-      #   pkgs.nodePackages.prettier
-      #   pkgs.eslint pkgs.deno
-      #   pkgs.typescript-language-server
-      #   pkgs.tailwindcss-language-server
-      #   pkgs.vscode-langservers-extracted
-      #   pkgs.emmet-ls
-      # ];
       languages = {
         language-server.typescript-language-server = with pkgs.nodePackages; {
           command = "${typescript-language-server}/bin/typescript-language-server";
           args = [ "--stdio" "--tsserver-path=${typescript}/lib/node_modules/typescript/lib" ];
         };
-        # language = [{
-        #   name = "rust";
-        #   auto-format = false;
-        # }];
-        # language-server.eslint = {
-        #   command = "vscode-eslint-language-server";
-        #   args = ["--stdio"];
-        # };
-        # language-server.eslint.config = {
-        #   codeActionsOnSave = { mode = "all"; "source.fixAll.eslint" = true; };
-        #   format = { enable = true; };
-        #   nodePath = "";
-        #   quiet = false;
-        #   rulesCustomizations = [];
-        #   run = "onType";
-        #   validate = "on";
-        #   experimental = {};
-        #   problems = { shortenToSingleLine = false; };
-        # };
-        # language-server.eslint.config.codeAction = {
-        #   disableRuleComment = { enable = true; location = "separateLine"; };
-        #   showDocumentation = { enable = false; };
-        # };
-        # language-server.vscode-json-language-server.config = {
-        #   json = { validate = { enable = true; }; format = { enable = true; }; };
-        #   provideFormatter = true;
-        # };
-        # language-server.vscode-css-language-server.config = {
-        #   css = { validate = { enable = true; }; };
-        #   scss = { validate = { enable = true; }; };
-        #   less = { validate = { enable = true; }; };
-        #   provideFormatter = true;
-        # };
-        #
-        # typescript = {
-        #   language-servers = [ "typescript-language-server" "eslint" "emmet-ls" ];
-        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "typescript" ]; };
-        #   auto-format = true;
-        # };
-        # tsx = {
-        #   language-servers = [ "deno" "eslint" "emmet-ls" ];
-        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "tsx" ]; };
-        #   auto-format = true;
-        # };
-        # javascript = {
-        #   language-servers = [ "typescript-language-server" "eslint" "emmet-ls" ];
-        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "javascript" ]; };
-        #   auto-format = true;
-        # };
-        # jsx = {
-        #   language-servers = [ "typescript-language-server" "eslint" "emmet-ls" ];
-        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "jsx" ]; };
-        #   auto-format = true;
-        # };
-        # json = {
-        #   formatter = { command = "dprint"; args = [ "fmt" "--stdin" "json" ]; };
-        #   auto-format = true;
-        # };
-        # html = {
-        #   language-servers = [ "vscode-html-language-server" "emmet-ls" ];
-        #   formatter = { command = "prettier"; args = [ "--parser" "html" ]; };
-        #   auto-format = true;
-        # };
-        # css = {
-        #   language-servers = [ "vscode-css-language-server" "emmet-ls" ];
-        #   formatter = { command = "prettier"; args = [ "--parser" "css" ]; };
-        #   auto-format = true;
-        # };
       };
     };
 
