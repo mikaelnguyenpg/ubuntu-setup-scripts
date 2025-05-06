@@ -1,9 +1,21 @@
-- name: Install Pritunl Client
+# ansible-playbook install_pritunl.yml
+# ansible-playbook install_pritunl.yml -e "uninstall_pritunl=true"
+- name: Install or Remove Pritunl Client
   hosts: localhost
-  become: no  # Default to no sudo, override per task
+  become: no
+  vars:
+    keyring_dir: "/etc/apt/keyrings"
+    pritunl_gpg_key: "{{ keyring_dir }}/pritunl.gpg"
+    pritunl_repo_file: "/etc/apt/sources.list.d/pritunl.list"
+    ubuntu_codename: "{{ ansible_distribution_release }}"
   tasks:
-    - name: Check if pritunl-client is already installed
-      command: pritunl-client version
+    - name: Validate Ubuntu version
+      assert:
+        that: ubuntu_codename == 'oracular'
+        fail_msg: "This playbook is designed for Ubuntu 24.04 (Oracular Oriole)"
+
+    - name: Check if pritunl-client is installed
+      ansible.builtin.command: pritunl-client version
       register: pritunl_check
       ignore_errors: yes
       changed_when: false
@@ -13,35 +25,98 @@
         name: gnupg
         state: present
       become: yes
-      when: pritunl_check.rc != 0  # Only if not installed
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
 
-    - name: Import Pritunl GPG key to keyring
-      shell: |
-        curl -fsSL https://raw.githubusercontent.com/pritunl/pgp/master/pritunl_repo_pub.asc | \
-        gpg --dearmor > /usr/share/keyrings/pritunl.gpg
-      args:
-        creates: /usr/share/keyrings/pritunl.gpg
+    - name: Ensure keyring directory exists
+      ansible.builtin.file:
+        path: "{{ keyring_dir }}"
+        state: directory
+        mode: '0755'
       become: yes
-      when: pritunl_check.rc != 0
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
+
+    - name: Download Pritunl GPG key
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/pritunl/pgp/master/pritunl_repo_pub.asc
+        dest: /tmp/pritunl_repo_pub.asc
+        mode: '0644'
+        timeout: 10
+      register: gpg_download
+      retries: 3
+      delay: 5
+      until: gpg_download is success
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
+
+    - name: Convert and install Pritunl GPG key
+      ansible.builtin.shell: gpg --dearmor < /tmp/pritunl_repo_pub.asc > {{ pritunl_gpg_key }}
+      args:
+        creates: "{{ pritunl_gpg_key }}"
+      become: yes
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
+
+    - name: Clean up temporary GPG key file
+      ansible.builtin.file:
+        path: /tmp/pritunl_repo_pub.asc
+        state: absent
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
 
     - name: Add Pritunl APT repository
       apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/pritunl.gpg] https://repo.pritunl.com/stable/apt oracular main"
+        repo: "deb [signed-by={{ pritunl_gpg_key }}] https://repo.pritunl.com/stable/apt {{ ubuntu_codename }} main"
         state: present
         filename: pritunl
-        update_cache: no
-      become: yes
-      when: pritunl_check.rc != 0
-
-    - name: Update APT cache
-      apt:
         update_cache: yes
       become: yes
-      when: pritunl_check.rc != 0
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
 
     - name: Install pritunl-client-electron
       apt:
         name: pritunl-client-electron
         state: present
       become: yes
-      when: pritunl_check.rc != 0
+      register: install_result
+      when: pritunl_check.rc != 0 and not uninstall_pritunl | default(false) | bool
+
+    - name: Debug installation
+      ansible.builtin.debug:
+        msg: "Pritunl client installed successfully"
+      when: install_result.changed
+
+    - name: Uninstall pritunl-client-electron
+      apt:
+        name: pritunl-client-electron
+        state: absent
+        purge: yes
+      become: yes
+      when: uninstall_pritunl | default(false) | bool
+
+    - name: Remove Pritunl APT repository
+      apt_repository:
+        repo: "deb [signed-by={{ pritunl_gpg_key }}] https://repo.pritunl.com/stable/apt {{ ubuntu_codename }} main"
+        state: absent
+        filename: pritunl
+        update_cache: yes
+      become: yes
+      when: uninstall_pritunl | default(false) | bool
+
+    - name: Remove Pritunl GPG key
+      ansible.builtin.file:
+        path: "{{ pritunl_gpg_key }}"
+        state: absent
+      become: yes
+      when: uninstall_pritunl | default(false) | bool
+
+    - name: Remove Pritunl configuration files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ ansible_env.HOME }}/.config/pritunl"
+        - "/etc/pritunl-client"
+      become: yes
+      when: uninstall_pritunl | default(false) | bool
+
+    - name: Debug uninstallation
+      ansible.builtin.debug:
+        msg: "Pritunl client and its configuration removed successfully"
+      when: uninstall_pritunl | default(false) | bool

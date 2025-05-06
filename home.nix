@@ -52,6 +52,7 @@ in {
 
     nodejs_23
     bun
+    yarn
     # Language servers
     typescript
     typescript-language-server

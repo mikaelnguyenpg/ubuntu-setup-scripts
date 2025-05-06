@@ -1,9 +1,10 @@
+# ansible-playbook step5-flatpak.yml
+# ansible-playbook step5-flatpak.yml -e "uninstall_flatpaks=true"
 - name: Install Flatpak Apps
   hosts: localhost
-  become: no  # Default to no sudo, override per task
+  become: no
   vars:
-    home_dir: "{{ ansible_env.HOME }}"  # Dynamically use actual home directory
-    config_dir: "{{ home_dir }}/.config"
+    home_dir: "{{ ansible_env.HOME }}"
     flatpak_apps:
       - com.google.Chrome
       - com.obsproject.Studio
@@ -13,27 +14,44 @@
       - org.libreoffice.LibreOffice
       - org.signal.Signal
   tasks:
+    - name: Validate Flatpak apps list
+      assert:
+        that: flatpak_apps | length > 0
+        fail_msg: "flatpak_apps list cannot be empty"
+
     - name: Install Flatpak
       apt:
         name: flatpak
         state: present
-        update_cache: yes  # Freshen cache
-      become: yes  # Run with sudo
+        update_cache: yes
+        cache_valid_time: 3600
+      become: yes
 
     - name: Add Flathub remote
-      command: flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-      args:
-        creates: "{{ home_dir }}/.local/share/flatpak/repo/flathub"  # Use variable for consistency
+      community.general.flatpak_remote:
+        name: flathub
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        state: present
+        method: user
 
     - name: Install Flatpak apps
-      command: flatpak install --user -y {{ item }}
-      loop: "{{ flatpak_apps }}"
+      community.general.flatpak:
+        name: "{{ flatpak_apps }}"
+        state: present
+        method: user
       register: install_result
-      changed_when: "'already installed' not in install_result.stderr and install_result.rc == 0"
-      failed_when: "install_result.rc != 0 and 'already installed' not in install_result.stderr"
+
+    - name: Debug Flatpak installation
+      debug:
+        msg: "Installed {{ item }} successfully"
+      when: install_result.changed
+      loop: "{{ flatpak_apps }}"
+      loop_control:
+        label: "{{ item }}"
 
     - name: Uninstall Flatpak apps (optional)
-      command: flatpak uninstall --user {{ item }}
-      loop: "{{ flatpak_apps }}"
+      community.general.flatpak:
+        name: "{{ flatpak_apps }}"
+        state: absent
+        method: user
       when: uninstall_flatpaks | default(false) | bool
-

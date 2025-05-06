@@ -1,0 +1,47 @@
+- name: Install Pritunl Client
+  hosts: localhost
+  become: no  # Default to no sudo, override per task
+  tasks:
+    - name: Check if pritunl-client is already installed
+      command: pritunl-client version
+      register: pritunl_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install gnupg
+      apt:
+        name: gnupg
+        state: present
+      become: yes
+      when: pritunl_check.rc != 0  # Only if not installed
+
+    - name: Import Pritunl GPG key to keyring
+      shell: |
+        curl -fsSL https://raw.githubusercontent.com/pritunl/pgp/master/pritunl_repo_pub.asc | \
+        gpg --dearmor > /usr/share/keyrings/pritunl.gpg
+      args:
+        creates: /usr/share/keyrings/pritunl.gpg
+      become: yes
+      when: pritunl_check.rc != 0
+
+    - name: Add Pritunl APT repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/pritunl.gpg] https://repo.pritunl.com/stable/apt oracular main"
+        state: present
+        filename: pritunl
+        update_cache: no
+      become: yes
+      when: pritunl_check.rc != 0
+
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+      become: yes
+      when: pritunl_check.rc != 0
+
+    - name: Install pritunl-client-electron
+      apt:
+        name: pritunl-client-electron
+        state: present
+      become: yes
+      when: pritunl_check.rc != 0

@@ -13,27 +13,30 @@ let
   # Package definitions
   packages = with pkgs; {
     cliTools = [
-      httpie
-      xclip
+      boxes
       btop
       cowsay
       figlet
-      boxes
+      httpie
       tldr
+      xclip
     ];
     media = [ vlc flameshot ];
     devTools = [
-      nodejs_23
       bun
+      deno
+      dprint
+      emmet-ls
+      eslint
+      nodePackages.prettier
+      nodejs_23
+      pyenv
+      tailwindcss-language-server
       typescript
       typescript-language-server
-      tailwindcss-language-server
+      # pyenv-virtualenv
       vscode-langservers-extracted
-      dprint
-      nodePackages.prettier
-      eslint
-      deno
-      emmet-ls
+      yarn
     ];
   };
 
@@ -254,5 +257,6 @@ in {
     neovim.enable = true;
     cmus.enable = true;
     yt-dlp.enable = true;
+    pyenv.enable = true;
   };
 }

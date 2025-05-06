@@ -1,0 +1,39 @@
+- name: Install Flatpak Apps
+  hosts: localhost
+  become: no  # Default to no sudo, override per task
+  vars:
+    home_dir: "{{ ansible_env.HOME }}"  # Dynamically use actual home directory
+    config_dir: "{{ home_dir }}/.config"
+    flatpak_apps:
+      - com.google.Chrome
+      - com.obsproject.Studio
+      - io.httpie.Httpie
+      - md.obsidian.Obsidian
+      - org.jousse.vincent.Pomodorolm
+      - org.libreoffice.LibreOffice
+      - org.signal.Signal
+  tasks:
+    - name: Install Flatpak
+      apt:
+        name: flatpak
+        state: present
+        update_cache: yes  # Freshen cache
+      become: yes  # Run with sudo
+
+    - name: Add Flathub remote
+      command: flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+      args:
+        creates: "{{ home_dir }}/.local/share/flatpak/repo/flathub"  # Use variable for consistency
+
+    - name: Install Flatpak apps
+      command: flatpak install --user -y {{ item }}
+      loop: "{{ flatpak_apps }}"
+      register: install_result
+      changed_when: "'already installed' not in install_result.stderr and install_result.rc == 0"
+      failed_when: "install_result.rc != 0 and 'already installed' not in install_result.stderr"
+
+    - name: Uninstall Flatpak apps (optional)
+      command: flatpak uninstall --user {{ item }}
+      loop: "{{ flatpak_apps }}"
+      when: uninstall_flatpaks | default(false) | bool
+

@@ -11,6 +11,7 @@ sudo apt -y update && sudo apt -y upgrade
 if ! command_exists "ansible"; then
   echo "Ansible not found. Installing..."
   sudo apt install -y "ansible"
+  ansible-galaxy collection install community.general
 else
   echo "Ansible is already installed."
 fi
