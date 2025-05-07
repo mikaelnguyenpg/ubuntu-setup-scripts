@@ -30,11 +30,11 @@ let
       eslint
       nodePackages.prettier
       nodejs_23
-      pyenv
       tailwindcss-language-server
       typescript
       typescript-language-server
-      # pyenv-virtualenv
+      uv
+      vite
       vscode-langservers-extracted
       yarn
     ];
@@ -45,8 +45,21 @@ let
 
   # Program configurations
   programConfigs = {
+    ghostty = {
+      # enable = true;
+      settings = {
+        theme = "catppuccin-mocha";
+        font-size = 14;
+        mouse-hide-while-typing = true;
+        window-decoration = true;
+        background-opacity = 0.8;
+        background-blur-radius = 20;
+      };
+    };
+
     helix = {
       enable = true;
+      defaultEditor = true;
       settings = {
         editor = {
           bufferline = "multiple";
@@ -81,22 +94,110 @@ let
           esc = ["collapse_selection" "keep_primary_selection"];
           "A-x" = "extend_to_line_bounds";
           "X" = "select_line_above";
+          "{" = "goto_prev_paragraph";
+          "}" = "goto_next_paragraph";
+          "C-g" = [":new" ":insert-output" ":buffer-close!" ":redraw"];
         };
         keys.select = {
           "A-x" = "extend_to_line_bounds";
           "X" = "select_line_above";
+          "{" = "goto_prev_paragraph";
+          "}" = "goto_next_paragraph";
         };
       };
-      languages.language-server.typescript-language-server = with pkgs.nodePackages; {
-        command = "${typescript-language-server}/bin/typescript-language-server";
-        args = ["--stdio" "--tsserver-path=${typescript}/lib/node_modules/typescript/lib"];
+
+      languages = {
+        language-server = {
+          emmet-ls = {
+            command = "emmet-ls";
+            args = [ "--stdio" ];
+          };
+          vscode-html-language-server = {
+            command = "vscode-html-language-server";
+            args = [ "--stdio" ];
+          };
+          vscode-css-language-server = {
+            command = "vscode-css-language-server";
+            args = [ "--stdio" ];
+          };
+          typescript-language-server = {
+            command = "typescript-language-server";
+            args = [ "--stdio" ];
+          };
+          tailwindcss-ls = {
+            command = "tailwindcss-language-server";
+            args = [ "--stdio" ];
+          };
+          rust-analyzer = {
+            command = "rust-analyzer";
+            args = [ ];
+            config.check.command = "clippy";
+          };
+        };
+
+        language = [
+          {
+            name = "html";
+            roots = [ ".git" ];
+            formatter = { command = "prettier"; args = [ "--parser" "html" ]; };
+            language-servers = [ "vscode-html-language-server" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "css";
+            formatter = { command = "prettier"; args = [ "--parser" "css" ]; };
+            language-servers = [ "vscode-css-language-server" "tailwindcss-ls" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "scss";
+            formatter = { command = "prettier"; args = [ "--parser" "scss" ]; };
+            language-servers = [ "vscode-css-language-server" ];
+            auto-format = true;
+          }
+          {
+            name = "javascript";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" ];
+            auto-format = true;
+          }
+          {
+            name = "typescript";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" ];
+            auto-format = true;
+          }
+          {
+            name = "jsx";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "tsx";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "json";
+            formatter = { command = "prettier"; args = [ "--parser" "json" ]; };
+            auto-format = true;
+          }
+          {
+            name = "markdown";
+            formatter = { command = "prettier"; args = [ "--parser" "markdown" ]; };
+            auto-format = true;
+          }
+        ];
       };
     };
 
     tmux = {
       enable = true;
       shell = "${pkgs.zsh}/bin/zsh";
-      terminal = "tmux-256color";
+      # terminal = "xterm-256color";
+      # terminal = "xterm-ghostty";
       historyLimit = 100000;
       prefix = "C-a";
       shortcut = "a";
@@ -132,6 +233,8 @@ let
         ''; }
       ];
       extraConfig = ''
+        set-option -g default-terminal 'screen-256color'
+        set-option -g terminal-overrides ',xterm-256color:RGB'
         unbind %
         bind | split-window -h -c "#{pane_current_path}"
         unbind '"'
@@ -152,7 +255,31 @@ let
         unbind -T copy-mode-vi MouseDragEnd1Pane
         unbind r
         bind r source-file ~/.config/tmux/tmux.conf
+        # prefix [: enter copy mode
+        # prefix I: Install session
+        # prefix r: Reload Tmux config
+        # prefix s: liSt sessions
+        # prefix C-s: Save session
+        # prefix C-r: Restore session
+        # prefix D: Detach session
+        # prefix &: kill current session
+        # prefix $: rename session
+        # prefix N/): Next session
+        # prefix P/(: Previous session
+        # prefix c: Create new window
+        # prefix ,: Rename window
+        # prefix n: Next window
+        # prefix p: Previous window
+        # prefix number: switch window by number
+        # prefix z: toggle pane Zoom
+        # prefix x: close pane
+        # ref: https://defkey.com/tmux-shortcuts
       '';
+    };
+
+    zellij = {
+      enable = true;
+      # settings = {};
     };
 
     zsh = {
@@ -166,14 +293,6 @@ let
         plugins = ["git"];
       };
       initExtra = ''
-        init_pyenv() {
-          export PYENV_ROOT="$HOME/.pyenv"
-          [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-          eval "$(pyenv init --path)"
-          eval "$(pyenv init -)"
-          eval "$(pyenv virtualenv-init -)"
-        }
-        init_pyenv
         alias cd="z"
         alias ..="cd .."
         alias ...="cd ../.."
@@ -193,6 +312,257 @@ let
         ytdlvideo() { yt-dlp --format "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]" "$@" && lsa; }
         ytdlaudio() { yt-dlp --extract-audio --audio-format mp3 --audio-quality 0 "$@" && lsa; }
       '';
+    };
+
+    starship = {
+      enable = true;
+      package = pkgs.starship;
+      enableZshIntegration = true;
+      settings = {
+        add_newline = false;
+
+        aws = {
+          symbol = "  ";
+        };
+
+        buf = {
+          symbol = " ";
+        };
+
+        bun = {
+          symbol = " ";
+        };
+
+        c = {
+          symbol = " ";
+        };
+
+        cpp = {
+          symbol = " ";
+        };
+
+        cmake = {
+          symbol = " ";
+        };
+
+        conda = {
+          symbol = " ";
+        };
+
+        crystal = {
+          symbol = " ";
+        };
+
+        dart = {
+          symbol = " ";
+        };
+
+        deno = {
+          symbol = " ";
+        };
+
+        directory = {
+          read_only = " 󰌾";
+        };
+
+        docker_context = {
+          symbol = " ";
+        };
+
+        elixir = {
+          symbol = " ";
+        };
+
+        elm = {
+          symbol = " ";
+        };
+
+        fennel = {
+          symbol = " ";
+        };
+
+        fossil_branch = {
+          symbol = " ";
+        };
+
+        gcloud = {
+          symbol = "  ";
+        };
+
+        git_branch = {
+          symbol = " ";
+        };
+
+        git_commit = {
+          tag_symbol = "  ";
+        };
+
+        golang = {
+          symbol = " ";
+        };
+
+        guix_shell = {
+          symbol = " ";
+        };
+
+        haskell = {
+          symbol = " ";
+        };
+
+        haxe = {
+          symbol = " ";
+        };
+
+        hg_branch = {
+          symbol = " ";
+        };
+
+        hostname = {
+          ssh_symbol = " ";
+        };
+
+        java = {
+          symbol = " ";
+        };
+
+        julia = {
+          symbol = " ";
+        };
+
+        kotlin = {
+          symbol = " ";
+        };
+
+        lua = {
+          symbol = " ";
+        };
+
+        memory_usage = {
+          symbol = "󰍛 ";
+        };
+
+        meson = {
+          symbol = "󰔷 ";
+        };
+
+        nim = {
+          symbol = "󰆥 ";
+        };
+
+        nix_shell = {
+          symbol = " ";
+        };
+
+        nodejs = {
+          symbol = " ";
+        };
+
+        ocaml = {
+          symbol = " ";
+        };
+
+        os = {
+          symbols = {
+            Alpaquita = " ";
+            Alpine = " ";
+            AlmaLinux = " ";
+            Amazon = " ";
+            Android = " ";
+            Arch = " ";
+            Artix = " ";
+            CachyOS = " ";
+            CentOS = " ";
+            Debian = " ";
+            DragonFly = " ";
+            Emscripten = " ";
+            EndeavourOS = " ";
+            Fedora = " ";
+            FreeBSD = " ";
+            Garuda = "󰛓 ";
+            Gentoo = " ";
+            HardenedBSD = "󰞌 ";
+            Illumos = "󰈸 ";
+            Kali = " ";
+            Linux = " ";
+            Mabox = " ";
+            Macos = " ";
+            Manjaro = " ";
+            Mariner = " ";
+            MidnightBSD = " ";
+            Mint = " ";
+            NetBSD = " ";
+            NixOS = " ";
+            Nobara = " ";
+            OpenBSD = "󰈺 ";
+            openSUSE = " ";
+            OracleLinux = "󰌷 ";
+            Pop = " ";
+            Raspbian = " ";
+            Redhat = " ";
+            RedHatEnterprise = " ";
+            RockyLinux = " ";
+            Redox = "󰀘 ";
+            Solus = "󰠳 ";
+            SUSE = " ";
+            Ubuntu = " ";
+            Unknown = " ";
+            Void = " ";
+            Windows = "󰍲 ";
+          };
+        };
+
+        package = {
+          symbol = "󰏗 ";
+        };
+
+        perl = {
+          symbol = " ";
+        };
+
+        php = {
+          symbol = " ";
+        };
+
+        pijul_channel = {
+          symbol = " ";
+        };
+
+        pixi = {
+          symbol = "󰏗 ";
+        };
+
+        python = {
+          symbol = " ";
+        };
+
+        rlang = {
+          symbol = "󰟔 ";
+        };
+
+        ruby = {
+          symbol = " ";
+        };
+
+        rust = {
+          symbol = "󱘗 ";
+        };
+
+        scala = {
+          symbol = " ";
+        };
+
+        swift = {
+          symbol = " ";
+        };
+
+        zig = {
+          symbol = " ";
+        };
+
+        gradle = {
+          symbol = " ";
+        };
+      };
     };
   };
 
@@ -237,6 +607,10 @@ in {
   # Services
   services = {
     flameshot.enable = true;
+    # - add to Ubuntu Settings > Keyboard > Keyboard Shortcuts > Custom Shortcuts > +
+    # Name: Flameshot
+    # Command: bash -c -- "flameshot gui > /dev/null"
+    # Shortcut: Fn + screenshot
   };
 
   # Programs
@@ -257,6 +631,5 @@ in {
     neovim.enable = true;
     cmus.enable = true;
     yt-dlp.enable = true;
-    pyenv.enable = true;
   };
 }

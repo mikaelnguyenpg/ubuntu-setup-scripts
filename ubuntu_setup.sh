@@ -1,48 +1,43 @@
 #!/bin/bash
 
-# Ubuntu: 1st update
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Ubuntu: 1st update & upgrade
 sudo apt -y update && sudo apt -y upgrade
-sudo apt install -y build-essential nala
-sudo nala install -y curl ibus-unikey ibus-chewing timeshift
+# Ubuntu: 2nd Ansible
+if ! command_exists "ansible"; then
+  echo "Ansible not found. Installing..."
+  sudo apt install -y "ansible"
+  ansible-galaxy collection install community.general
+else
+  echo "Ansible is already installed."
+fi
 
-# Nix: install
-# wget https://gist.github.com/mikaelnguyenpg/69e0acd9039f58d77d2ca44bfffde5c2/raw -O ubuntu_setup-nix.sh
-chmod +x ubuntu_setup-nix.sh
-./ubuntu_setup-nix.sh "eagle"
+# Change to the ansible directory (adjust path if not in ~/)
+cd "ansible/" || { echo "Directory ansible/ not found!"; exit 1; }
 
-# Pritunl: install
-echo " - Running: setup-pritunl.sh"
-# wget https://gist.github.com/mikaelnguyenpg/dd7dd3a4d7f8f4f1c619cead181654f6/raw -O ubuntu_setup-pritunl.sh
-chmod +x ubuntu_setup-pritunl.sh
-./ubuntu_setup-pritunl.sh
+# Ansible: 2.1 Update & Upgrade
+ansible-playbook -i inventory.yml step1-update-upgrade.yml -K
+# Ansible: 2.2 Timeshift
+ansible-playbook -i inventory.yml step2-timeshift.yml
+# Ansible: 2.3 Essentials
+ansible-playbook -i inventory.yml step3-essentials.yml
+# Ansible: 2.4 Nix
+ansible-playbook -i inventory.yml step4-nix.yml
+# Ansible: 2.5 Flatpak
+ansible-playbook -i inventory.yml step5-flatpak.yml
+# Ansible: 2.6 Snap
+ansible-playbook -i inventory.yml step6-snap.yml
+# Ansible: 2.7 Nvidia drivers, KVMQEMU, Minimize
+ansible-playbook -i inventory.yml step7-others.yml
+# Ansible: 2.8 Pritunl
+ansible-playbook -i inventory.yml step8-pritunl.yml
+# Ansible: 2.9 Cleanup
+ansible-playbook -i inventory.yml step9-cleanup.yml
+# Ansible: 2.11 Flatpak
+# Ansible: 2.10 Flatpak
 
-echo " - Running: setup-flatpak.sh"
-# Flatpak: install
-# wget https://gist.github.com/mikaelnguyenpg/3ccc19a0535c7d8c9e630a59f4f98287/raw -O ubuntu_setup-flatpak.sh
-chmod +x ubuntu_setup-flatpak.sh
-# ./ubuntu_setup-flatpak.sh
-
-# Snap: apps
-snap list | grep -q "ghostty " || sudo snap install ghostty --classic
-snap list | grep -q "code " || sudo snap install code --classic
-snap list | grep -q "webstorm " || sudo snap install webstorm --classic
-# Ubuntu: Click to minimize
-gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize-or-previews'
-# KVM: Virtual-machine
-command -v kvm >/dev/null || sudo nala install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent spice-vdagent
-# Ubuntu: Install Nvidia drivers
-command -v nvidia-smi >/dev/null || sudo ubuntu-drivers devices && sudo ubuntu-drivers autoinstall
-# Pyenv: required dependencies
-sudo nala install build-essential libssl-dev zlib1g-dev \
-  libbz2-dev libreadline-dev libsqlite3-dev \
-  libncursesw5-dev xz-utils tk-dev \
-  libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
-
-# Ubuntu: Cleanup nix & apt
-nix-collect-garbage -d
-
-sudo nala autoremove -y
-sudo nala clean
-
-# Setup projects
-./ubuntu_setup-proj.sh
+echo "Setup completed!"

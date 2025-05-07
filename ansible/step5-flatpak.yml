@@ -1,5 +1,5 @@
-# ansible-playbook step5-flatpak.yml
-# ansible-playbook step5-flatpak.yml -e "uninstall_flatpaks=true"
+# ansible-playbook step5-flatpak.yml --ask-become-pass
+# ansible-playbook step5-flatpak.yml -e "uninstall_flatpaks=true" --ask-become-pass
 - name: Install Flatpak Apps
   hosts: localhost
   become: no

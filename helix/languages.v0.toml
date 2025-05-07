@@ -1,0 +1,62 @@
+[[language]]
+name = "typescript"
+scope = "source.ts"
+injection-regex = "typescript"
+file-types = ["ts", "tsx"]
+roots = ["package.json", "tsconfig.json"]
+auto-format = true
+comment-token = "//"
+language-servers = ["typescript-language-server", "tailwindcss-language-server", "emmet-ls"]
+indent = { tab-width = 2, unit = "  " }
+formatter = { command = "prettier", args = ["--parser", "typescript"] }
+
+[[language]]
+name = "javascript"
+scope = "source.js"
+injection-regex = "javascript"
+file-types = ["js", "jsx"]
+roots = ["package.json"]
+auto-format = true
+comment-token = "//"
+language-servers = ["typescript-language-server"]
+indent = { tab-width = 2, unit = "  " }
+formatter = { command = "prettier", args = ["--parser", "babel"] }
+
+[[language]]
+name = "html"
+scope = "text.html.basic"
+injection-regex = "html"
+file-types = ["html"]
+auto-format = true
+language-servers = ["vscode-html-language-server", "tailwindcss-language-server", "emmet-ls"]
+indent = { tab-width = 2, unit = "  " }
+formatter = { command = "prettier", args = ["--parser", "html"] }
+
+[[language]]
+name = "css"
+scope = "source.css"
+injection-regex = "css"
+file-types = ["css"]
+auto-format = true
+language-servers = ["vscode-css-language-server", "tailwindcss-language-server"]
+indent = { tab-width = 2, unit = "  " }
+formatter = { command = "prettier", args = ["--parser", "css"] }
+
+[[language]]
+name = "scss"
+scope = "source.scss"
+injection-regex = "scss"
+file-types = ["scss"]
+auto-format = true
+language-servers = ["vscode-css-language-server", "tailwindcss-language-server"]
+indent = { tab-width = 2, unit = "  " }
+formatter = { command = "prettier", args = ["--parser", "scss"] }
+
+[[language]]
+name = "json"
+scope = "source.json"
+file-types = ["json"]
+auto-format = true
+language-servers = ["vscode-json-language-server"]
+indent = { tab-width = 2, unit = "  " }
+formatter = { command = "prettier", args = ["--parser", "json"] }

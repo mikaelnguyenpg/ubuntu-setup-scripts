@@ -1,0 +1,31 @@
+[editor]
+line-number = "relative"
+cursorline = true
+auto-save = true
+auto-format = true
+bufferline = "multiple"
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.file-picker]
+hidden = false
+
+[editor.lsp]
+display-messages = true
+display-inlay-hints = true
+
+[keys.normal]
+C-s = ":write"
+C-q = ":quit"
+C-t = ":new"
+C-w = ":buffer-close"
+
+[keys.insert]
+C-s = ":write"
+Esc = ["normal_mode", ":write"]
+
+[keys.normal.g]
+t = ":sh npm run dev"  # Start Next.js dev server
