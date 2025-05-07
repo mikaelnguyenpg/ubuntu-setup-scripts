@@ -1,87 +1,151 @@
-- name: Install Nix, Home Manager with Flakes, and Configure Packages
+# ansible-playbook install_nix_home_manager.yml
+# ansible-playbook install_nix_home_manager.yml -e "uninstall_nix=true"
+- name: Install or Remove Nix, Home Manager with Flakes, and Configure Packages
   hosts: localhost
-  become: no  # Single-user Nix install doesn’t require sudo
+  become: no
   vars:
-    home_dir: "{{ ansible_env.HOME }}"  # Dynamically use actual home directory
+    home_dir: "{{ ansible_env.HOME }}"
     nix_conf_dir: "{{ home_dir }}/.config/nix"
     hm_dir: "{{ home_dir }}/.config/home-manager"
+    nix_path: "{{ home_dir }}/.nix-profile/bin:{{ ansible_env.PATH }}"
   tasks:
-    # Install Nix with --no-daemon
+    - name: Check if Nix is installed
+      ansible.builtin.command: nix --version
+      register: nix_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Download Nix installer
+      ansible.builtin.get_url:
+        url: https://nixos.org/nix/install
+        dest: /tmp/nix-install.sh
+        mode: '0755'
+      register: nix_download
+      retries: 3
+      delay: 5
+      until: nix_download is success
+      when: nix_check.rc != 0 and not uninstall_nix | default(false) | bool
+
     - name: Install Nix in single-user mode
-      shell: |
-        curl -L https://nixos.org/nix/install | sh -s -- --no-daemon --yes
+      ansible.builtin.shell: sh /tmp/nix-install.sh --no-daemon --yes
       args:
         creates: "{{ home_dir }}/.nix-profile/bin/nix"
       environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/bin:/bin"
+        PATH: "{{ nix_path }}:/usr/bin:/bin"
       register: nix_install_result
       changed_when: nix_install_result.rc == 0
+      when: nix_check.rc != 0 and not uninstall_nix | default(false) | bool
 
-    # Source Nix environment
-    - name: Source Nix environment for Ansible session
-      shell: |
-        if [ -f "{{ home_dir }}/.nix-profile/etc/profile.d/nix.sh" ]; then
-          . "{{ home_dir }}/.nix-profile/etc/profile.d/nix.sh" && echo "NIX_SOURCED=1"
-        else
-          echo "Nix environment file not found" >&2
-          exit 1
-        fi
+    - name: Clean up Nix installer
+      ansible.builtin.file:
+        path: /tmp/nix-install.sh
+        state: absent
+      when: nix_check.rc != 0 and not uninstall_nix | default(false) | bool
+
+    - name: Check if Nix environment script exists
+      ansible.builtin.stat:
+        path: "{{ home_dir }}/.nix-profile/etc/profile.d/nix.sh"
+      register: nix_env_script
+      when: not uninstall_nix | default(false) | bool
+
+    - name: Source Nix environment
+      ansible.builtin.shell: . "{{ home_dir }}/.nix-profile/etc/profile.d/nix.sh" && echo "NIX_SOURCED=1"
       register: nix_source_result
       changed_when: "'NIX_SOURCED=1' in nix_source_result.stdout"
-      failed_when: "'Nix environment file not found' in nix_source_result.stderr"
+      failed_when: nix_source_result.rc != 0
+      environment:
+        PATH: "{{ nix_path }}"
+      when: nix_env_script.stat.exists and not uninstall_nix | default(false) | bool
 
-    # Enable Flakes in nix.conf
     - name: Ensure Nix config directory exists
-      file:
+      ansible.builtin.file:
         path: "{{ nix_conf_dir }}"
         state: directory
         mode: '0755'
+      when: not uninstall_nix | default(false) | bool
 
     - name: Enable Flake support in nix.conf
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ nix_conf_dir }}/nix.conf"
         line: "experimental-features = nix-command flakes"
         create: yes
         mode: '0644'
+      when: not uninstall_nix | default(false) | bool
 
-    # Install Home Manager
+    - name: Check if home.nix source file exists
+      ansible.builtin.stat:
+        path: "../home-manager/home.full.nix"
+      register: home_nix_file
+      failed_when: not home_nix_file.stat.exists
+      when: not uninstall_nix | default(false) | bool
+
     - name: Install Home Manager
-      shell: |
+      ansible.builtin.shell: |
         . {{ home_dir }}/.nix-profile/etc/profile.d/nix.sh
         nix run github:nix-community/home-manager -- init --switch
-        # nix profile install github:nix-community/home-manager#home-manager
-        # nix-shell '<home-manager>' -A install
-        # nix-env -iA nixpkgs.home-manager
       args:
         creates: "{{ home_dir }}/.nix-profile/bin/home-manager"
       environment:
-        PATH: "{{ home_dir }}/.nix-profile/bin:{{ ansible_env.PATH }}"
+        PATH: "{{ nix_path }}"
+      register: hm_install
+      retries: 3
+      delay: 5
+      until: hm_install is success or 'already installed' in hm_install.stderr
+      when: not uninstall_nix | default(false) | bool
 
-    # Configure Home Manager with specified packages
     - name: Configure home.nix with packages
-      copy:
+      ansible.builtin.copy:
         src: "../home-manager/home.full.nix"
         dest: "{{ hm_dir }}/home.nix"
         mode: '0644'
+      when: not uninstall_nix | default(false) | bool
 
-    # Apply Home Manager configuration
     - name: Apply Home Manager configuration
-      shell: |
+      ansible.builtin.shell: |
         . {{ home_dir }}/.nix-profile/etc/profile.d/nix.sh
         home-manager switch
       args:
         chdir: "{{ hm_dir }}"
       environment:
-        PATH: "{{ home_dir }}/.nix-profile/bin:{{ ansible_env.PATH }}"
+        PATH: "{{ nix_path }}"
       register: hm_switch_result
       changed_when: "'activated' in hm_switch_result.stdout or hm_switch_result.rc == 0"
+      when: not uninstall_nix | default(false) | bool
 
-    # Verify Home Manager installation
+    - name: Debug Home Manager switch failure
+      ansible.builtin.debug:
+        msg: "Home Manager switch failed: {{ hm_switch_result.stderr }}"
+      when: hm_switch_result is failed and not uninstall_nix | default(false) | bool
+
     - name: Verify Home Manager version
-      command: "{{ home_dir }}/.nix-profile/bin/home-manager --version"
+      ansible.builtin.command: "{{ home_dir }}/.nix-profile/bin/home-manager --version"
       register: hm_version_result
       changed_when: false
+      when: not uninstall_nix | default(false) | bool
 
     - name: Display Home Manager version
-      debug:
+      ansible.builtin.debug:
         msg: "Home Manager installed and configured. Version: {{ hm_version_result.stdout }}"
+      when: not uninstall_nix | default(false) | bool
+
+    - name: Uninstall Home Manager
+      ansible.builtin.shell: |
+        . {{ home_dir }}/.nix-profile/etc/profile.d/nix.sh
+        nix profile remove home-manager
+      environment:
+        PATH: "{{ nix_path }}"
+      when: uninstall_nix | default(false) | bool
+      ignore_errors: yes
+
+    - name: Remove Nix and Home Manager files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ home_dir }}/.nix-profile"
+        - "{{ home_dir }}/.nix-channels"
+        - "{{ home_dir }}/.nix-defexpr"
+        - "{{ nix_conf_dir }}"
+        - "{{ hm_dir }}"
+        - "/nix"
+      when: uninstall_nix | default(false) | bool

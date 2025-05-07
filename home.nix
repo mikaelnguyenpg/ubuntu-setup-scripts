@@ -93,20 +93,20 @@ in {
   '';
 
   # home.activation.initialize-starship = lib.hm.dag.entryAfter [ "install-oh-my-zsh-plugins" ] ''
-  home.activation.initialize-starship = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    echo "Initializing Starship configuration..."
-    if [ ! -d "$HOME/.config/starship.toml" ]; then
-      /usr/bin/curl -L "${starshipTomlUrl}" -o "$HOME/.config/starship.toml"
-      # Insert a setting
-      sed -i '1i add_newline = false' "$HOME/.config/starship.toml"
-    else
-      echo "starship.toml config already exist!"
-    fi
-    # Setup shell to use Starship
-    # if ! grep -Fxq 'eval "$(starship init bash)"' ~/.bashrc; then
-    #   echo 'eval "$(starship init bash)"' >> ~/.bashrc
-    # fi
-  '';
+  # home.activation.initialize-starship = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  #   echo "Initializing Starship configuration..."
+  #   if [ ! -d "$HOME/.config/starship.toml" ]; then
+  #     /usr/bin/curl -L "${starshipTomlUrl}" -o "$HOME/.config/starship.toml"
+  #     # Insert a setting
+  #     sed -i '1i add_newline = false' "$HOME/.config/starship.toml"
+  #   else
+  #     echo "starship.toml config already exist!"
+  #   fi
+  #   # Setup shell to use Starship
+  #   # if ! grep -Fxq 'eval "$(starship init bash)"' ~/.bashrc; then
+  #   #   echo 'eval "$(starship init bash)"' >> ~/.bashrc
+  #   # fi
+  # '';
 
   # Home Manager can also manage your environment variables through
   # 'home.sessionVariables'. These will be explicitly sourced when using a
@@ -159,7 +159,6 @@ in {
     lf.enable = true;
     ripgrep.enable = true;
     yazi.enable = true;
-    starship.enable = true;
     zoxide.enable = true;
 
     git.enable = true;
@@ -169,11 +168,23 @@ in {
     cmus.enable = true;
     yt-dlp.enable = true;
 
-    # ghostty.enable = true;
+    ghostty = {
+      enable = true;
+      settings = {
+        theme = "catppuccin-mocha";
+        font-size = 14;
+        mouse-hide-while-typing = true;
+        window-decoration = true;
+        background-opacity = 0.8;
+        background-blur-radius = 20;
+      };
+    };
+
     # https://theari.dev/blog/enhanced-helix-config/
     # https://dev.to/morlinbrot/configure-helix-for-typescript-eslint-prettierdprint-582c
     helix = {
       enable = true;
+      defaultEditor = true;
       settings = {
         editor = {
           # Show currently open buffers, only when more than one exists.
@@ -206,7 +217,7 @@ in {
         editor.statusline = {
           left = ["mode" "spinner" "version-control" "file-name"];
         };
-# Minimum severity to show a diagnostic after the end of a line
+        # Minimum severity to show a diagnostic after the end of a line
         editor = {
           end-of-line-diagnostics = "hint";
         };
@@ -221,24 +232,109 @@ in {
           esc = [ "collapse_selection" "keep_primary_selection" ];
           A-x = "extend_to_line_bounds";
           X = "select_line_above";
+          "{" = "goto_prev_paragraph";
+          "}" = "goto_next_paragraph";
         };
         keys.select = {
           A-x = "extend_to_line_bounds";
           X = "select_line_above";
+          "{" = "goto_prev_paragraph";
+          "}" = "goto_next_paragraph";
         };
       };
+      # Language configurations (languages.toml)
       languages = {
-        language-server.typescript-language-server = with pkgs.nodePackages; {
-          command = "${typescript-language-server}/bin/typescript-language-server";
-          args = [ "--stdio" "--tsserver-path=${typescript}/lib/node_modules/typescript/lib" ];
+        language-server = {
+          emmet-ls = {
+            command = "emmet-ls";
+            args = [ "--stdio" ];
+          };
+          vscode-html-language-server = {
+            command = "vscode-html-language-server";
+            args = [ "--stdio" ];
+          };
+          vscode-css-language-server = {
+            command = "vscode-css-language-server";
+            args = [ "--stdio" ];
+          };
+          typescript-language-server = {
+            command = "typescript-language-server";
+            args = [ "--stdio" ];
+          };
+          tailwindcss-ls = {
+            command = "tailwindcss-language-server";
+            args = [ "--stdio" ];
+          };
+          rust-analyzer = {
+            command = "rust-analyzer";
+            args = [ ];
+            config.check.command = "clippy";
+          };
         };
+
+        language = [
+          {
+            name = "html";
+            roots = [ ".git" ];
+            formatter = { command = "prettier"; args = [ "--parser" "html" ]; };
+            language-servers = [ "vscode-html-language-server" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "css";
+            formatter = { command = "prettier"; args = [ "--parser" "css" ]; };
+            language-servers = [ "vscode-css-language-server" "tailwindcss-ls" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "scss";
+            formatter = { command = "prettier"; args = [ "--parser" "scss" ]; };
+            language-servers = [ "vscode-css-language-server" ];
+            auto-format = true;
+          }
+          {
+            name = "javascript";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" ];
+            auto-format = true;
+          }
+          {
+            name = "typescript";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" ];
+            auto-format = true;
+          }
+          {
+            name = "jsx";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "tsx";
+            formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
+            language-servers = [ "typescript-language-server" "emmet-ls" ];
+            auto-format = true;
+          }
+          {
+            name = "json";
+            formatter = { command = "prettier"; args = [ "--parser" "json" ]; };
+            auto-format = true;
+          }
+          {
+            name = "markdown";
+            formatter = { command = "prettier"; args = [ "--parser" "markdown" ]; };
+            auto-format = true;
+          }
+        ];
       };
     };
 
     tmux = {
       enable = true;
       shell = "${pkgs.zsh}/bin/zsh";
-      terminal = "tmux-256color";
+      terminal = "xterm-ghostty";
+      # terminal = "tmux-256color";
       historyLimit = 100000;
       prefix = "C-a";
       shortcut = "a";
@@ -392,6 +488,257 @@ in {
         ytdlvideo() { yt-dlp --format "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]" "$@" && lsa; }
         ytdlaudio() { yt-dlp --extract-audio --audio-format mp3 --audio-quality 0 "$@" && lsa; }
       '';
+    };
+
+    starship = {
+      enable = true;
+      package = pkgs.starship;
+      enableZshIntegration = true;
+      settings = {
+        add_newline = false;
+
+        aws = {
+          symbol = "  ";
+        };
+
+        buf = {
+          symbol = " ";
+        };
+
+        bun = {
+          symbol = " ";
+        };
+
+        c = {
+          symbol = " ";
+        };
+
+        cpp = {
+          symbol = " ";
+        };
+
+        cmake = {
+          symbol = " ";
+        };
+
+        conda = {
+          symbol = " ";
+        };
+
+        crystal = {
+          symbol = " ";
+        };
+
+        dart = {
+          symbol = " ";
+        };
+
+        deno = {
+          symbol = " ";
+        };
+
+        directory = {
+          read_only = " 󰌾";
+        };
+
+        docker_context = {
+          symbol = " ";
+        };
+
+        elixir = {
+          symbol = " ";
+        };
+
+        elm = {
+          symbol = " ";
+        };
+
+        fennel = {
+          symbol = " ";
+        };
+
+        fossil_branch = {
+          symbol = " ";
+        };
+
+        gcloud = {
+          symbol = "  ";
+        };
+
+        git_branch = {
+          symbol = " ";
+        };
+
+        git_commit = {
+          tag_symbol = "  ";
+        };
+
+        golang = {
+          symbol = " ";
+        };
+
+        guix_shell = {
+          symbol = " ";
+        };
+
+        haskell = {
+          symbol = " ";
+        };
+
+        haxe = {
+          symbol = " ";
+        };
+
+        hg_branch = {
+          symbol = " ";
+        };
+
+        hostname = {
+          ssh_symbol = " ";
+        };
+
+        java = {
+          symbol = " ";
+        };
+
+        julia = {
+          symbol = " ";
+        };
+
+        kotlin = {
+          symbol = " ";
+        };
+
+        lua = {
+          symbol = " ";
+        };
+
+        memory_usage = {
+          symbol = "󰍛 ";
+        };
+
+        meson = {
+          symbol = "󰔷 ";
+        };
+
+        nim = {
+          symbol = "󰆥 ";
+        };
+
+        nix_shell = {
+          symbol = " ";
+        };
+
+        nodejs = {
+          symbol = " ";
+        };
+
+        ocaml = {
+          symbol = " ";
+        };
+
+        os = {
+          symbols = {
+            Alpaquita = " ";
+            Alpine = " ";
+            AlmaLinux = " ";
+            Amazon = " ";
+            Android = " ";
+            Arch = " ";
+            Artix = " ";
+            CachyOS = " ";
+            CentOS = " ";
+            Debian = " ";
+            DragonFly = " ";
+            Emscripten = " ";
+            EndeavourOS = " ";
+            Fedora = " ";
+            FreeBSD = " ";
+            Garuda = "󰛓 ";
+            Gentoo = " ";
+            HardenedBSD = "󰞌 ";
+            Illumos = "󰈸 ";
+            Kali = " ";
+            Linux = " ";
+            Mabox = " ";
+            Macos = " ";
+            Manjaro = " ";
+            Mariner = " ";
+            MidnightBSD = " ";
+            Mint = " ";
+            NetBSD = " ";
+            NixOS = " ";
+            Nobara = " ";
+            OpenBSD = "󰈺 ";
+            openSUSE = " ";
+            OracleLinux = "󰌷 ";
+            Pop = " ";
+            Raspbian = " ";
+            Redhat = " ";
+            RedHatEnterprise = " ";
+            RockyLinux = " ";
+            Redox = "󰀘 ";
+            Solus = "󰠳 ";
+            SUSE = " ";
+            Ubuntu = " ";
+            Unknown = " ";
+            Void = " ";
+            Windows = "󰍲 ";
+          };
+        };
+
+        package = {
+          symbol = "󰏗 ";
+        };
+
+        perl = {
+          symbol = " ";
+        };
+
+        php = {
+          symbol = " ";
+        };
+
+        pijul_channel = {
+          symbol = " ";
+        };
+
+        pixi = {
+          symbol = "󰏗 ";
+        };
+
+        python = {
+          symbol = " ";
+        };
+
+        rlang = {
+          symbol = "󰟔 ";
+        };
+
+        ruby = {
+          symbol = " ";
+        };
+
+        rust = {
+          symbol = "󱘗 ";
+        };
+
+        scala = {
+          symbol = " ";
+        };
+
+        swift = {
+          symbol = " ";
+        };
+
+        zig = {
+          symbol = " ";
+        };
+
+        gradle = {
+          symbol = " ";
+        };
+      };
     };
   };
 }

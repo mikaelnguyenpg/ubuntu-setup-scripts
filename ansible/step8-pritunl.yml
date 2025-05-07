@@ -1,5 +1,5 @@
-# ansible-playbook install_pritunl.yml
-# ansible-playbook install_pritunl.yml -e "uninstall_pritunl=true"
+# ansible-playbook -i inventory.yml step8-pritunl.yml --ask-become-pass
+# ansible-playbook -i inventory.yml step8-pritunl.yml -e "uninstall_pritunl=true" --ask-become-pass
 - name: Install or Remove Pritunl Client
   hosts: localhost
   become: no

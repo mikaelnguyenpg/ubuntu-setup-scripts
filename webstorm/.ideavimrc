@@ -1,0 +1,13 @@
+# Enable relative line numbers
+set relativenumber
+set number
+
+# Use system clipboard
+set clipboard+=unnamedplus
+
+# Set 2-space tabs and indentation
+set tabstop=2
+set shiftwidth=2
+set softtabstop=2
+set expandtab
+# Ctrl + Alt + Shift + L: re-format whole file
