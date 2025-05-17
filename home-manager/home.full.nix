@@ -18,6 +18,9 @@ let
       cowsay
       figlet
       httpie
+      # samba
+      spice-vdagent
+      # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
       tldr
       xclip
     ];
@@ -35,6 +38,7 @@ let
       typescript-language-server
       uv
       vite
+      vscode-js-debug
       vscode-langservers-extracted
       yarn
     ];
@@ -54,6 +58,10 @@ let
         window-decoration = true;
         background-opacity = 0.8;
         background-blur-radius = 20;
+        window-width = 800;
+        window-height = 600;
+        quick-terminal-position = "center";
+        # maximize = true;
       };
     };
 
@@ -92,17 +100,11 @@ let
         editor.file-picker.hidden = false;
         keys.normal = {
           esc = ["collapse_selection" "keep_primary_selection"];
-          "A-x" = "extend_to_line_bounds";
           "X" = "select_line_above";
-          "{" = "goto_prev_paragraph";
-          "}" = "goto_next_paragraph";
-          "C-g" = [":new" ":insert-output" ":buffer-close!" ":redraw"];
+          # "C-g" = [":new" ":insert-output" ":buffer-close!" ":redraw"];
         };
         keys.select = {
-          "A-x" = "extend_to_line_bounds";
           "X" = "select_line_above";
-          "{" = "goto_prev_paragraph";
-          "}" = "goto_next_paragraph";
         };
       };
 
@@ -123,6 +125,26 @@ let
           typescript-language-server = {
             command = "typescript-language-server";
             args = [ "--stdio" ];
+            config = {
+              typescript.inlayHints = {
+                includeInlayEnumMemberValueHints = true;
+                includeInlayFunctionLikeReturnTypeHints = true;
+                includeInlayFunctionParameterTypeHints = true;
+                includeInlayParameterNameHints = "all";
+                includeInlayParameterNameHintsWhenArgumentMatchesName = true;
+                includeInlayPropertyDeclarationTypeHints = true;
+                includeInlayVariableTypeHints = true;
+              };
+              javascript.inlayHints = {
+                includeInlayEnumMemberValueHints = true;
+                includeInlayFunctionLikeReturnTypeHints = true;
+                includeInlayFunctionParameterTypeHints = true;
+                includeInlayParameterNameHints = "all";
+                includeInlayParameterNameHintsWhenArgumentMatchesName = true;
+                includeInlayPropertyDeclarationTypeHints = true;
+                includeInlayVariableTypeHints = true;
+              };
+            };
           };
           tailwindcss-ls = {
             command = "tailwindcss-language-server";
@@ -166,6 +188,31 @@ let
             formatter = { command = "prettier"; args = [ "--parser" "typescript" ]; };
             language-servers = [ "typescript-language-server" ];
             auto-format = true;
+            scope = "source.ts";
+            injection-regex = "(ts|typescript)";
+            file-types = [ "ts" ]; # "tsx"
+            roots = [ "package.json" "tsconfig.json" ];
+            debugger = {
+              name = "vscode-js-debug";
+              transport = "stdio";
+              command = "${pkgs.vscode-js-debug}/bin/js-debug-adapter";
+              args = [];
+              templates = [
+                {
+                  name = "source";
+                  request = "launch";
+                  completion = [
+                  { name = "main"; completion = "filename"; default = "index.ts"; }
+                  ];
+                  args = {
+                    program = "{0}";
+                    runtimeExecutable = "${pkgs.nodejs_23}/bin/node";
+                    sourceMaps = true;
+                    outFiles = [ "\${workspaceFolder}/dist/**/*.js" ]; # Adjust based on your build output
+                  };
+                }
+              ];
+            };
           }
           {
             name = "jsx";
@@ -279,7 +326,10 @@ let
 
     zellij = {
       enable = true;
-      # settings = {};
+      # enableZshIntegration = true;
+      settings = {
+        default_shell = "zsh";
+      };
     };
 
     zsh = {

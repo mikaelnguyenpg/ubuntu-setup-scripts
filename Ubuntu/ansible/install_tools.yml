@@ -1,0 +1,279 @@
+---
+- name: Install tools and apps on Ubuntu 24.04
+  hosts: localhost
+  connection: local
+  become: yes
+  install_nix: true
+  vars:
+    essential_packages:
+      - curl
+      - git
+      - build-essential
+      - libssl-dev
+      - zlib1g-dev
+      - libbz2-dev
+      - libreadline-dev
+      - libsqlite3-dev
+      - libncursesw5-dev
+      - xz-utils
+      - tk-dev
+      - libxml2-dev
+      - libxmlsec1-dev
+      - libffi-dev
+      - liblzma-dev
+    flatpak_apps:
+      - com.google.Chrome
+      - com.obsproject.Studio
+      - io.httpie.Httpie
+      - md.obsidian.Obsidian
+      - org.jousse.vincent.Pomodorolm
+      - org.libreoffice.LibreOffice
+      - org.signal.Signal
+    snap_apps:
+      - { name: ghostty, classic: true }
+      - { name: code, classic: true }
+      - { name: webstorm, classic: true }
+    qemu_packages:
+      - qemu-kvm
+      - qemu-utils
+      - libvirt-daemon-system
+      - libvirt-clients
+      - bridge-utils
+      - virt-manager
+      - ovmf
+      - qemu-guest-agent
+      - spice-vdagent
+      - samba
+  tasks:
+    - name: Update and upgrade system
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install nala
+      ansible.builtin.apt:
+        name: nala
+        state: present
+      register: nala_install
+      notify: Configure nala
+
+    - name: Install essential packages
+      ansible.builtin.apt:
+        name: "{{ essential_packages }}"
+        state: present
+
+    - name: Install ansible
+      ansible.builtin.apt:
+        name: ansible
+        state: present
+
+    # === Flatpak ===
+    - name: Install flatpak
+      ansible.builtin.apt:
+        name: flatpak
+        state: present
+
+    - name: Add Flathub repository
+      ansible.builtin.command:
+        cmd: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        creates: /var/lib/flatpak/repo/flathub
+      changed_when: false
+
+    - name: Install flatpak applications
+      ansible.builtin.flatpak:
+        name: "{{ item }}"
+        remote: flathub
+        state: present
+      loop: "{{ flatpak_apps }}"
+    # === Flatpak ===
+
+    # === Snap ===
+    - name: Install snapd
+      ansible.builtin.apt:
+        name: snapd
+        state: present
+
+    - name: Install snap applications
+      ansible.builtin.snap:
+        name: "{{ item.name }}"
+        classic: "{{ item.classic }}"
+        state: present
+      loop: "{{ snap_apps }}"
+    # === Snap ===
+
+    # === VM ===
+    - name: Install QEMU/KVM packages
+      ansible.builtin.apt:
+        name: "{{ qemu_packages }}"
+        state: present
+
+    - name: Enable and start libvirtd service
+      ansible.builtin.service:
+        name: libvirtd
+        state: started
+        enabled: yes
+
+    - name: Add user to libvirt group
+      ansible.builtin.user:
+        name: "{{ ansible_user_id }}"
+        groups: libvirt
+        append: yes
+    # === VM ===
+
+    # === Nix ===
+    # == Install ==
+    - name: Check if Nix is installed
+      ansible.builtin.command:
+        cmd: nix --version
+      register: nix_check
+      failed_when: false
+      changed_when: false
+      when: install_nix
+
+    - name: Download Nix installer
+      ansible.builtin.get_url:
+        url: https://nixos.org/nix/install
+        dest: /tmp/nix-install.sh
+        mode: '0755'
+      when: install_nix and nix_check.rc != 0
+
+    - name: Install Nix
+      ansible.builtin.shell:
+        cmd: sh /tmp/nix-install.sh --no-daemon
+        creates: "{{ home_dir }}/.nix-profile/bin/nix"
+      when: install_nix and nix_check.rc != 0
+
+    - name: Source Nix environment
+      ansible.builtin.shell:
+        cmd: . {{ home_dir }}/.nix-profile/etc/profile.d/nix.sh
+        executable: /bin/sh
+      when: install_nix and nix_check.rc != 0
+      changed_when: false
+
+    - name: Enable Nix flakes
+      ansible.builtin.blockinfile:
+        path: "{{ home_dir }}/.config/nix/nix.conf"
+        create: yes
+        mode: '0644'
+        block: |
+          experimental-features = nix-command flakes
+        marker: "# {mark} ANSIBLE MANAGED BLOCK for Nix flakes"
+      when: install_nix
+
+    - name: Initialize home-manager with flakes
+      ansible.builtin.shell:
+        cmd: nix run home-manager/release-24.11 -- init
+        creates: "{{ home_dir }}/.config/home-manager/flake.nix"
+      when: install_nix
+
+    - name: Copy home.full.nix to home.nix
+      ansible.builtin.copy:
+        src: "{{ sample_nix_path }}"
+        dest: "{{ home_nix_path }}"
+        mode: '0644'
+      when: install_nix
+
+    - name: Apply home-manager configuration
+      ansible.builtin.shell:
+        cmd: nix run home-manager/release-24.11 -- switch --flake {{ home_dir }}/.config/home-manager
+        creates: "{{ home_dir }}/.local/state/home-manager"
+      when: install_nix
+
+    - name: Clean up Nix garbage
+      ansible.builtin.shell:
+        cmd: nix-collect-garbage -d
+      when: install_nix
+      changed_when: true
+    # == Install ==
+
+    # == Uninstall ==
+    - name: Remove Nix profile and store
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ home_dir }}/.nix-profile"
+        - "{{ home_dir }}/.nix"
+      when: not install_nix
+
+    - name: Remove Nix channels
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ home_dir }}/.nix-channels"
+        - "{{ home_dir }}/.nix-defexpr"
+      when: not install_nix
+
+    - name: Remove Nix configuration
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.config/nix"
+        state: absent
+      when: not install_nix
+
+    - name: Remove home-manager configuration
+      ansible.builtin.file:
+        path: "{{ home_dir }}/.config/home-manager"
+        state: absent
+      when: not install_nix
+
+    - name: Remove Nix state and cache
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ home_dir }}/.local/state/nix"
+        - "{{ home_dir }}/.cache/nix"
+      when: not install_nix
+
+    - name: Remove Nix from shell configurations
+      ansible.builtin.lineinfile:
+        path: "{{ item }}"
+        regexp: 'nix-profile/etc/profile.d/nix.sh'
+        state: absent
+      loop:
+        - "{{ home_dir }}/.bashrc"
+        - "{{ home_dir }}/.zshrc"
+        - "{{ home_dir }}/.profile"
+      when: not install_nix
+    # == Uninstall ==
+    # === Nix ===
+
+    # === Pritunl ===
+    - name: Add Pritunl APT repository for Ubuntu 24.10
+      ansible.builtin.apt_repository:
+        repo: "deb https://repo.pritunl.com/stable/apt oracular main"
+        state: present
+        filename: pritunl
+      register: pritunl_repo
+
+    - name: Install gnupg for Pritunl
+      ansible.builtin.apt:
+        name: gnupg
+        state: present
+
+    - name: Import Pritunl GPG key
+      ansible.builtin.shell:
+        cmd: |
+          gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A
+          gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | tee /etc/apt/trusted.gpg.d/pritunl.asc
+        creates: /etc/apt/trusted.gpg.d/pritunl.asc
+      changed_when: true
+
+    - name: Update APT cache after adding Pritunl repository
+      ansible.builtin.apt:
+        update_cache: yes
+      when: pritunl_repo.changed
+
+    - name: Install pritunl-client-electron
+      ansible.builtin.apt:
+        name: pritunl-client-electron
+        state: present
+    # === Pritunl ===
+
+  handlers:
+    - name: Configure nala
+      ansible.builtin.command:
+        cmd: nala fetch --auto --non-interactive
+      when: nala_install.changed

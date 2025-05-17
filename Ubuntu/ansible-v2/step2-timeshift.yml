@@ -1,3 +1,7 @@
+# Playbook: Install Timeshift & Create full backup
+# Prerequisites: Ubuntu 24.04+, root or sudo access
+# Author: MikaelNguyen
+# ansible-playbook -i inventory.yml step2-timeshift.yml -K
 - name: Install Timeshift and Create Full Backup with /home if No First Backup
   hosts: localhost
   become: yes  # Needed for system-level operations

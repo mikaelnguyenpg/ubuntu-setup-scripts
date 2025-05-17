@@ -1,3 +1,7 @@
+# Playbook: Install Essentials
+# Prerequisites: Ubuntu 24.04+, root or sudo access
+# Author: MikaelNguyen
+# ansible-playbook -i inventory.yml step3-essentials.yml -K
 - name: Install Essential Development Packages
   hosts: localhost
   become: yes  # Needed for system-level operations

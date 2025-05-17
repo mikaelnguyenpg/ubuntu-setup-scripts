@@ -1,0 +1,82 @@
+# Playbook: Configure Ubuntu desktop settings, input methods, and virtualization
+# Prerequisites: Ubuntu 24.04+ with GNOME desktop, root or sudo access
+# Author: MikaelNguyen
+# ansible-playbook -i inventory.yml step7-others.yml -K
+- name: Configure Miscellaneous Ubuntu Settings and Installations
+  hosts: localhost
+  become: yes
+  vars:
+    typing_packages:
+      - ibus-unikey
+      - ibus-chewing
+    input_sources:
+      - "ibus/unikey"  # Vietnamese (Unikey)
+      - "ibus/chewing" # Chinese (Chewing)
+    kvm_packages:
+      - qemu-kvm
+      - qemu-utils
+      - libvirt-daemon-system
+      - libvirt-clients
+      - bridge-utils
+      - virt-manager
+      - ovmf
+      - qemu-guest-agent
+      - spice-vdagent
+      - samba
+  tasks:
+    - name: Install python3-psutil for dconf module
+      apt:
+        name: python3-psutil
+        state: present
+
+    - name: Enable click-to-minimize in GNOME Dash-to-Dock
+      dconf:
+        key: "/org/gnome/shell/extensions/dash-to-dock/click-action"
+        value: "'minimize-or-previews'"
+        state: present
+      environment:
+        XDG_RUNTIME_DIR: "{{ ansible_env.XDG_RUNTIME_DIR | default('/run/user/' ~ ansible_user_uid) }}"
+
+    # Install Languages
+    - name: Install typing packages with apt
+      apt:
+        name: "{{ typing_packages }}"
+        state: present
+        update_cache: yes
+
+    - name: Configure GNOME input sources for typing
+      dconf:
+        key: "/org/gnome/desktop/input-sources/sources"
+        # value: "[('xkb', 'us'), ('ibus', 'unikey'), ('ibus', 'chewing')]"
+        value: "[('xkb', 'us'), {{ input_sources | map('regex_replace', 'ibus/(.*)', '(\"ibus\", \"\\1\")') | join(', ') }}]"
+        state: present
+      environment:
+        XDG_RUNTIME_DIR: "{{ ansible_env.XDG_RUNTIME_DIR | default('/run/user/' ~ ansible_facts['user_uid']) }}"
+        DBUS_SESSION_BUS_ADDRESS: "{{ ansible_env.DBUS_SESSION_BUS_ADDRESS | default('unix:path=/run/user/' ~ ansible_facts['user_uid'] ~ '/bus') }}"
+
+    # Install Virtual-machine
+    - name: Check if KVM is installed
+      shell: qemu-system-x86_64 --version
+      register: kvm_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install KVM-related packages with apt (if nala unavailable)
+      apt:
+        name: "{{ kvm_packages }}"
+        state: present
+      when: kvm_check.rc != 0
+
+    - name: Check if NVIDIA drivers are installed
+      command: nvidia-smi
+      register: nvidia_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install NVIDIA drivers if not present
+      shell: |
+        ubuntu-drivers devices
+        ubuntu-drivers autoinstall
+      when: nvidia_check.rc != 0  # Install only if nvidia-smi fails
+      register: nvidia_install
+      changed_when: nvidia_install.rc == 0

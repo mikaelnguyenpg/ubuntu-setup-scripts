@@ -1,3 +1,7 @@
+# Playbook: Update and Upgrade Ubuntu System
+# Prerequisites: Ubuntu 24.04+, root or sudo access
+# Author: MikaelNguyen
+# ansible-playbook -i inventory.yml step1-update-upgrade.yml -K
 - name: Update and Upgrade Ubuntu System
   hosts: localhost
   become: yes

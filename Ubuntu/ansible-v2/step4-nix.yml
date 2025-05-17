@@ -1,5 +1,8 @@
-# ansible-playbook install_nix_home_manager.yml
-# ansible-playbook install_nix_home_manager.yml -e "uninstall_nix=true"
+# Playbook: Install Nix, Home Manager with Flakes, and Configure Packages
+# Prerequisites: Ubuntu 24.04+, root or sudo access
+# Author: MikaelNguyen
+# ansible-playbook -i inventory.yml step4-nix.yml -K
+# ansible-playbook -i inventory.yml step4-nix.yml -e "uninstall_nix=true"
 - name: Install or Remove Nix, Home Manager with Flakes, and Configure Packages
   hosts: localhost
   become: no
