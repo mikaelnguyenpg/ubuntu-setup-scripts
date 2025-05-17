@@ -29,6 +29,129 @@ log() {
     echo "[INFO] $1"
 }
 
+# Install Nix in single-user mode
+install_nix() {
+    if ! command_exists nix; then
+        log "Installing Nix"
+        sh <(curl -L https://nixos.org/nix/install) --no-daemon
+    else
+        log "Nix is already installed"
+    fi
+}
+
+# Source Nix profile and enable flakes
+configure_nix() {
+    if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+        log "Sourcing Nix profile"
+        . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+    fi
+
+    if ! grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf 2>/dev/null; then
+        log "Enabling Nix flakes"
+        mkdir -p ~/.config/nix
+        echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+    else
+        log "Nix flakes are already enabled"
+    fi
+}
+
+# Initialize home-manager with flakes and copy home.full.nix
+install_home_manager() {
+    if [ ! -f ~/.config/home-manager/flake.nix ]; then
+        log "Initializing home-manager with flakes"
+        nix run home-manager/release-24.11 -- init
+    else
+        log "home-manager is already initialized"
+    fi
+
+    # # Install home-manager
+    # if ! command_exists home-manager; then
+    #   log "Installing home-manager"
+    #   nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+    #   nix-channel --update
+    #   nix-shell '<home-manager>' -A install
+    # else
+    #     log "home-manager is already installed"
+    # fi
+
+    SAMPLE_NIX="../../home-manager/home.full.nix"
+    HOME_NIX="$HOME/.config/home-manager/home.nix"
+    if [ -f "$SAMPLE_NIX" ]; then
+        log "Copying home.full.nix to home.nix"
+        cp "$SAMPLE_NIX" "$HOME_NIX"
+    else
+        log "home.full.nix not found at $SAMPLE_NIX"
+        exit 1
+    fi
+}
+
+# Apply home-manager configuration
+apply_home_manager() {
+    HOME_NIX="$HOME/.config/home-manager/home.nix"
+    if [ -f "$HOME_NIX" ]; then
+        log "Applying home-manager configuration"
+        nix run home-manager/release-24.11 -- switch --flake ~/.config/home-manager
+        nix-collect-garbage -d
+    else
+        log "home.nix not found; skipping home-manager activation"
+    fi
+
+    # if [ -f ~/.config/home-manager/home.nix ]; then
+    #     log "Install home-manager packages"
+    #     home-manager switch --show-trace
+    #     nix-collect-garbage -d
+    # else
+    #     log "home-manager is NOT available"
+    # fi
+}
+
+# Remove Nix, home-manager, and related files
+remove_nix() {
+    if [ -d ~/.nix-profile ] || [ -d ~/.nix ]; then
+        log "Removing Nix profile and store"
+        rm -rf ~/.nix-profile ~/.nix
+    else
+        log "Nix profile and store already removed"
+    fi
+
+    if [ -d ~/.nix-channels ] || [ -d ~/.nix-defexpr ]; then
+        log "Removing Nix channels"
+        rm -rf ~/.nix-channels ~/.nix-defexpr
+    else
+        log "Nix channels already removed"
+    fi
+
+    if [ -d ~/.config/nix ]; then
+        log "Removing Nix configuration"
+        rm -rf ~/.config/nix
+    else
+        log "Nix configuration already removed"
+    fi
+
+    if [ -d ~/.config/home-manager ]; then
+        log "Removing home-manager configuration"
+        rm -rf ~/.config/home-manager
+    else
+        log "home-manager configuration already removed"
+    fi
+
+    if [ -d ~/.local/state/nix ] || [ -d ~/.cache/nix ]; then
+        log "Removing Nix state and cache"
+        rm -rf ~/.local/state/nix ~/.cache/nix
+    else
+        log "Nix state and cache already removed"
+    fi
+
+    for shell_config in ~/.bashrc ~/.zshrc ~/.profile; do
+        if [ -f "$shell_config" ] && grep -q "nix-profile/etc/profile.d/nix.sh" "$shell_config"; then
+            log "Removing Nix from $shell_config"
+            sed -i '/nix-profile\/etc\/profile.d\/nix.sh/d' "$shell_config"
+        else
+            log "No Nix shell integration found in $shell_config"
+        fi
+    done
+}
+
 # Update and upgrade system
 log "Updating and upgrading system"
 if command_exists nala; then
@@ -85,121 +208,16 @@ else
     sudo nala install -y ansible
 fi
 
-# Control Nix installation or removal
+# Main logic for Nix installation or removal
 INSTALL_NIX=true # Set to true to install, false to remove
 
 if [ "$INSTALL_NIX" = "true" ]; then
-    # Install Nix
-    if ! command_exists nix; then
-        log "Installing Nix"
-        sh <(curl -L https://nixos.org/nix/install) --no-daemon
-    else
-        log "Nix is already installed"
-    fi
-
-    # Source Nix profile
-    if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
-        . "$HOME/.nix-profile/etc/profile.d/nix.sh"
-    fi
-
-    # Enable flakes
-    if ! grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf 2>/dev/null; then
-        log "Enabling Nix flakes"
-        mkdir -p ~/.config/nix
-        echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
-    else
-        log "Nix flakes are already enabled"
-    fi
-
-    # # Install home-manager
-    # if ! command_exists home-manager; then
-    #   log "Installing home-manager"
-    #   nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-    #   nix-channel --update
-    #   nix-shell '<home-manager>' -A install
-    # else
-    #     log "home-manager is already installed"
-    # fi
-
-    # Initialize home-manager with flakes
-    if [ ! -f ~/.config/home-manager/flake.nix ]; then
-        log "Initializing home-manager with flakes"
-        nix run home-manager/release-24.11 -- init
-    else
-        log "home-manager is already initialized"
-    fi
-
-    # Copy home.full.nix to home.nix
-    SAMPLE_NIX="../../home-manager/home.full.nix"
-    HOME_NIX="$HOME/.config/home-manager/home.nix"
-    if [ -f "$SAMPLE_NIX" ]; then
-        log "Copying home.full.nix to home.nix"
-        cp "$SAMPLE_NIX" "$HOME_NIX"
-    else
-        log "home.full.nix not found at $SAMPLE_NIX"
-        exit 1
-    fi
-
-    # # Initialize home-manager with flakes
-    # if [ -f ~/.config/home-manager/home.nix ]; then
-    #     log "Install home-manager packages"
-    #     home-manager switch --show-trace
-    # else
-    #     log "home-manager is NOT available"
-    # fi
-    # Apply home-manager configuration
-    if [ -f "$HOME_NIX" ]; then
-        log "Applying home-manager configuration"
-        nix run home-manager/release-24.11 -- switch --flake ~/.config/home-manager
-        nix-collect-garbage -d
-    else
-        log "home.nix not found; skipping home-manager activation"
-    fi
+    install_nix
+    configure_nix
+    install_home_manager
+    apply_home_manager
 else
-    # Remove Nix, flakes, and home-manager
-    if [ -d ~/.nix-profile ] || [ -d ~/.nix ]; then
-        log "Removing Nix profile and store"
-        rm -rf ~/.nix-profile ~/.nix
-    else
-        log "Nix profile and store already removed"
-    fi
-
-    if [ -d ~/.nix-channels ] || [ -d ~/.nix-defexpr ]; then
-        log "Removing Nix channels"
-        rm -rf ~/.nix-channels ~/.nix-defexpr
-    else
-        log "Nix channels already removed"
-    fi
-
-    if [ -d ~/.config/nix ]; then
-        log "Removing Nix configuration"
-        rm -rf ~/.config/nix
-    else
-        log "Nix configuration already removed"
-    fi
-
-    if [ -d ~/.config/home-manager ]; then
-        log "Removing home-manager configuration"
-        rm -rf ~/.config/home-manager
-    else
-        log "home-manager configuration already removed"
-    fi
-
-    if [ -d ~/.local/state/nix ] || [ -d ~/.cache/nix ]; then 
-        log "Removing Nix state and cache"
-        rm -rf ~/.local/state/nix ~/.cache/nix
-    else
-        log "Nix state and cache already removed"
-    fi
-
-    for shell_config in ~/.bashrc ~/.zshrc ~/.profile; do
-        if [ -f "$shell_config" ] && grep -q "nix-profile/etc/profile.d/nix.sh" "$shell_config"; then
-            log "Removing Nix from $shell_config"
-            sed -i '/nix-profile\/etc\/profile.d\/nix.sh/d' "$shell_config"
-        else
-            log "No Nix shell integration found in $shell_config"
-        fi
-    done
+    remove_nix
 fi
 
 # Install flatpak and flatpak apps
