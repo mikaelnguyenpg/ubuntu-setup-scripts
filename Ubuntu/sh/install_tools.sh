@@ -74,14 +74,45 @@ install_home_manager() {
     #     log "home-manager is already installed"
     # fi
 
-    SAMPLE_NIX="../../home-manager/home.full.nix"
-    HOME_NIX="$HOME/.config/home-manager/home.nix"
+    SAMPLE_DIR="../../home-manager"
+    HOME_DIR="$HOME/.config/home-manager"
+    SAMPLE_NIX="$SAMPLE_DIR/home.full.nix"
+    SAMPLE_FLAKE="$SAMPLE_DIR/flake.nix"
+    SAMPLE_FUNCTIONS="$SAMPLE_DIR/functions.zsh"
+    SAMPLE_ALIASES="$SAMPLE_DIR/aliases.zsh"
+    HOME_NIX="$HOME_DIR/home.nix"
+    HOME_FLAKE="$HOME_DIR/flake.nix"
+    HOME_FUNCTIONS="$HOME_DIR/functions.zsh"
+    HOME_ALIASES="$HOME_DIR/aliases.zsh"
+
     if [ -f "$SAMPLE_NIX" ]; then
         log "Copying home.full.nix to home.nix"
         cp "$SAMPLE_NIX" "$HOME_NIX"
     else
         log "home.full.nix not found at $SAMPLE_NIX"
         exit 1
+    fi
+
+    if [ -f "$SAMPLE_FLAKE" ]; then
+        log "Copying home.full.nix to home.nix"
+        cp "$SAMPLE_FLAKE" "$HOME_FLAKE"
+    else
+        log "flake.nix not found at $SAMPLE_FLAKE"
+        exit 1
+    fi
+
+    if [ -f "$SAMPLE_FUNCTIONS" ]; then
+        log "Copying functions.zsh to $HOME_DIR"
+        cp "$SAMPLE_FUNCTIONS" "$HOME_FUNCTIONS"
+    else
+        log "functions.zsh not found at $SAMPLE_FUNCTIONS"
+    fi
+
+    if [ -f "$SAMPLE_ALIASES" ]; then
+        log "Copying aliases.zsh to $HOME_DIR"
+        cp "$SAMPLE_ALIASES" "$HOME_ALIASES"
+    else
+        log "aliases.zsh not found at $SAMPLE_ALIASES"
     fi
 }
 
@@ -91,7 +122,7 @@ apply_home_manager() {
     if [ -f "$HOME_NIX" ]; then
         log "Applying home-manager configuration"
         nix run home-manager/release-24.11 -- switch --flake ~/.config/home-manager
-        nix-collect-garbage -d
+        # nix-collect-garbage -d
     else
         log "home.nix not found; skipping home-manager activation"
     fi
@@ -208,18 +239,6 @@ else
     sudo nala install -y ansible
 fi
 
-# Main logic for Nix installation or removal
-INSTALL_NIX=true # Set to true to install, false to remove
-
-if [ "$INSTALL_NIX" = "true" ]; then
-    install_nix
-    configure_nix
-    install_home_manager
-    apply_home_manager
-else
-    remove_nix
-fi
-
 # Install flatpak and flatpak apps
 if ! command_exists flatpak; then
     log "Installing flatpak"
@@ -229,7 +248,8 @@ else
     log "flatpak is already installed"
 fi
 
-FLATPAK_APPS="com.google.Chrome com.obsproject.Studio io.httpie.Httpie md.obsidian.Obsidian org.jousse.vincent.Pomodorolm org.libreoffice.LibreOffice org.signal.Signal"
+# FLATPAK_APPS="com.google.Chrome com.obsproject.Studio io.httpie.Httpie md.obsidian.Obsidian org.jousse.vincent.Pomodorolm org.libreoffice.LibreOffice org.signal.Signal"
+FLATPAK_APPS=""
 for app in $FLATPAK_APPS; do
     if is_flatpak_installed "$app"; then
         log "$app is already installed"
@@ -247,7 +267,7 @@ else
     log "snap is already installed"
 fi
 
-SNAP_APPS="ghostty code webstorm"
+SNAP_APPS="ghostty"
 for app in $SNAP_APPS; do
     if is_snap_installed "$app"; then
         log "$app is already installed"
@@ -256,6 +276,18 @@ for app in $SNAP_APPS; do
         snap install "$app" --classic
     fi
 done
+
+# Main logic for Nix installation or removal
+INSTALL_NIX=true # Set to true to install, false to remove
+
+if [ "$INSTALL_NIX" = "true" ]; then
+    install_nix
+    configure_nix
+    install_home_manager
+    apply_home_manager
+else
+    remove_nix
+fi
 
 # Install QEMU/KVM and virtualization tools
 QEMU_PKGS="qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent" # spice-vdagent samba
@@ -268,61 +300,61 @@ for pkg in $QEMU_PKGS; do
     fi
 done
 
-# Enable and start libvirtd service
-if systemctl is-active --quiet libvirtd; then
-    log "libvirtd service is already running"
-else
-    log "Enabling and starting libvirtd service"
-    systemctl enable libvirtd
-    systemctl start libvirtd
-fi
+# # Enable and start libvirtd service
+# if systemctl is-active --quiet libvirtd; then
+#     log "libvirtd service is already running"
+# else
+#     log "Enabling and starting libvirtd service"
+#     systemctl enable libvirtd
+#     systemctl start libvirtd
+# fi
 
-# Add user to libvirt group
-if groups "$USER" | grep -q libvirt; then
-    log "User $USER is already in libvirt group"
-else
-    log "Adding user $USER to libvirt group"
-    usermod -aG libvirt "$USER"
-fi
+# # Add user to libvirt group
+# if groups "$USER" | grep -q libvirt; then
+#     log "User $USER is already in libvirt group"
+# else
+#     log "Adding user $USER to libvirt group"
+#     usermod -aG libvirt "$USER"
+# fi
 
-# Install Pritunl VPN Client
-if is_apt_installed pritunl-client-electron; then
-    log "pritunl-client-electron is already installed"
-else
-    log "Installing Pritunl VPN Client"
-    # Add Pritunl APT repository
-    if [ ! -f /etc/apt/sources.list.d/pritunl.list ]; then
-        log "Adding Pritunl APT repository"
-        sudo sh -c "printf 'deb https://repo.pritunl.com/stable/apt oracular main\n' > /etc/apt/sources.list.d/pritunl.list"
-    else
-        log "Pritunl APT repository already exists"
-    fi
-
-    # Install gnupg
-    if is_apt_installed gnupg; then
-        log "gnupg is already installed"
-    else
-        log "Installing gnupg"
-        sudo nala install -y gnupg
-    fi
-
-    # Import Pritunl GPG key
-    if [ ! -f /etc/apt/trusted.gpg.d/pritunl.asc ]; then
-        log "Importing Pritunl GPG key"
-        gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A
-        gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | sudo tee /etc/apt/trusted.gpg.d/pritunl.asc > /dev/null
-    else
-        log "Pritunl GPG key already imported"
-    fi
-
-    # Update APT cache
-    log "Updating APT cache for Pritunl"
-    sudo nala update
-
-    # Install pritunl-client-electron
-    log "Installing pritunl-client-electron"
-    sudo nala install -y pritunl-client-electron
-fi
+# # Install Pritunl VPN Client
+# if is_apt_installed pritunl-client-electron; then
+#     log "pritunl-client-electron is already installed"
+# else
+#     log "Installing Pritunl VPN Client"
+#     # Add Pritunl APT repository
+#     if [ ! -f /etc/apt/sources.list.d/pritunl.list ]; then
+#         log "Adding Pritunl APT repository"
+#         sudo sh -c "printf 'deb https://repo.pritunl.com/stable/apt oracular main\n' > /etc/apt/sources.list.d/pritunl.list"
+#     else
+#         log "Pritunl APT repository already exists"
+#     fi
+#
+#     # Install gnupg
+#     if is_apt_installed gnupg; then
+#         log "gnupg is already installed"
+#     else
+#         log "Installing gnupg"
+#         sudo nala install -y gnupg
+#     fi
+#
+#     # Import Pritunl GPG key
+#     if [ ! -f /etc/apt/trusted.gpg.d/pritunl.asc ]; then
+#         log "Importing Pritunl GPG key"
+#         gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A
+#         gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | sudo tee /etc/apt/trusted.gpg.d/pritunl.asc > /dev/null
+#     else
+#         log "Pritunl GPG key already imported"
+#     fi
+#
+#     # Update APT cache
+#     log "Updating APT cache for Pritunl"
+#     sudo nala update
+#
+#     # Install pritunl-client-electron
+#     log "Installing pritunl-client-electron"
+#     sudo nala install -y pritunl-client-electron
+# fi
 
 log "Installation complete. Please log out and log back in for group changes to take effect."
 exit 0

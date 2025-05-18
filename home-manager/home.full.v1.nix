@@ -6,6 +6,7 @@ let
     username = "eagle";
     homeDir = "/home/eagle";
     stateVersion = "24.11";
+    starshipTomlUrl = "https://starship.rs/presets/toml/nerd-font-symbols.toml";
     lazyvimRepo = "https://github.com/mikaelnguyenpg/nvim-starter.git";
   };
 
@@ -14,38 +15,23 @@ let
     cliTools = [
       boxes
       btop
-      gtop
-      # gotop
-      # nvitop
       cowsay
       figlet
+      # ghostty
       httpie
-      lsd
       # samba
       spice-vdagent
       # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
       tldr
       xclip
     ];
-    media = [
-      flameshot
-      google-chrome
-      httpie-desktop
-      # libchewing
-      # ibus-engines.bamboo
-      libreoffice
-      obsidian
-      pritunl-client
-      signal-desktop
-      vlc
-    ];
+    media = [ vlc flameshot pritunl-client ];
     devTools = [
       bun
       deno
       dprint
       emmet-ls
       eslint
-      jetbrains.webstorm
       nodePackages.prettier
       nodePackages.nodejs
       tailwindcss-language-server
@@ -57,13 +43,35 @@ let
       vscode-langservers-extracted
       yarn
     ];
+    # Add Flatpak-related packages
+    flatpakTools = [
+      flatpak
+      xdg-desktop-portal
+      xdg-desktop-portal-gtk
+    ];
   };
 
   # Combine all packages into a single list
-  allPackages = with packages; cliTools ++ media ++ devTools;
+  allPackages = with packages; cliTools ++ media ++ devTools ++ flatpakTools;
 
   # Program configurations
   programConfigs = {
+    # ghostty = {
+    #   enable = true;
+    #   settings = {
+    #     theme = "catppuccin-mocha";
+    #     font-size = 14;
+    #     mouse-hide-while-typing = true;
+    #     window-decoration = true;
+    #     background-opacity = 0.8;
+    #     background-blur-radius = 20;
+    #     window-width = 800;
+    #     window-height = 600;
+    #     quick-terminal-position = "center";
+    #     # maximize = true;
+    #   };
+    # };
+
     helix = {
       enable = true;
       defaultEditor = true;
@@ -97,18 +105,15 @@ let
           other-lines = "disable";
         };
         editor.file-picker.hidden = false;
+        keys.normal = {
+          esc = ["collapse_selection" "keep_primary_selection"];
+          "X" = "select_line_above";
+          # "C-g" = [":new" ":insert-output" ":buffer-close!" ":redraw"];
+        };
+        keys.select = {
+          "X" = "select_line_above";
+        };
       };
-
-      extraConfig = ''
-        [keys.insert]
-        # k = { j = "normal_mode" }
-        esc = ["collapse_selection", "keep_primary_selection", "normal_mode"]
-
-        [keys.normal]
-        C-f = [ ":new", ":insert-output yazi", ":buffer-close!", ":redraw", ":reload-all" ]
-        C-g = [ ":new", ":insert-output lazygit", ":buffer-close!", ":redraw", ":reload-all" ]
-        esc = ["collapse_selection", "keep_primary_selection", "normal_mode"]
-      '';
 
       languages = {
         language-server = {
@@ -245,7 +250,8 @@ let
     tmux = {
       enable = true;
       shell = "${pkgs.zsh}/bin/zsh";
-      terminal = "screen-256color";
+      # terminal = "xterm-256color";
+      # terminal = "xterm-ghostty";
       historyLimit = 100000;
       prefix = "C-a";
       shortcut = "a";
@@ -274,47 +280,35 @@ let
           set -g @resurrect-strategy-nvim 'session'
           set -g @resurrect-capture-pane-contents 'on'
         ''; }
-        # { plugin = tmuxPlugins.continuum; extraConfig = ''
-        #   set -g @continuum-restore 'on'
-        #   set -g @continuum-boot 'off'
-        #   set -g @continuum-save-interval '10'
-        # ''; }
+        { plugin = tmuxPlugins.continuum; extraConfig = ''
+          set -g @continuum-restore 'on'
+          set -g @continuum-boot 'on'
+          set -g @continuum-save-interval '10'
+        ''; }
       ];
       extraConfig = ''
-        # Terminal settings for Ghostty
+        set-option -g default-terminal 'screen-256color'
         set-option -g terminal-overrides ',xterm-256color:RGB'
-
-        # Pane splitting
         unbind %
         bind | split-window -h -c "#{pane_current_path}"
         unbind '"'
         bind - split-window -v -c "#{pane_current_path}"
-
-        # Pane navigation (vim-tmux-navigator handles h,j,k,l)
         bind j select-pane -D
         bind k select-pane -U
         bind l select-pane -R
         bind h select-pane -L
-
-        # Pane resizing
         bind Down resize-pane -D 5
         bind Up resize-pane -U 5
         bind Right resize-pane -R 5
         bind Left resize-pane -L 5
-
-        # Clipboard and VI mode
         set -g set-clipboard on
         set -g mouse on
         set-window-option -g mode-keys vi
         bind-key -T copy-mode-vi 'v' send -X begin-selection
         bind-key -T copy-mode-vi 'y' send -X copy-selection
         unbind -T copy-mode-vi MouseDragEnd1Pane
-
-        # Reload config
         unbind r
         bind r source-file ~/.config/tmux/tmux.conf
-
-        # Keybindings reference
         # prefix [: enter copy mode
         # prefix I: Install session
         # prefix r: Reload Tmux config
@@ -337,109 +331,6 @@ let
       '';
     };
 
-    vscode = {
-      enable = true;
-      package = pkgs.vscode;
-
-      userSettings = {
-        # General settings
-        "editor.fontSize" = 14;
-        "editor.tabSize" = 2;
-        "editor.formatOnSave" = true;
-        "window.zoomLevel" = 1;
-        "terminal.integrated.shell" = "${pkgs.zsh}/bin/zsh"; # Use zsh as the integrated terminal shell
-        "terminal.integrated.defaultProfile.linux" = "zsh";
-
-        # Theme (matching your tmux tokyo-night theme)
-        "workbench.colorTheme" = "Tokyo Night Storm";
-
-        # Vim keybindings (optional, since you use vim-tmux-navigator)
-        "vim.easymotion" = true;
-        "vim.handleKeys" = {
-          "<C-a>" = false;
-          "<C-f>" = false;
-          "<C-p>" = false;
-        };
-        "vim.leader" = "<space>";
-        "vim.normalModeKeyBindingsNonRecursive" = [
-          {
-            "before" = ["ctrl" "w"];
-            "commands" = ["workbench.action.files.save"];
-          }
-        ];
-        "vim.useSystemClipboard" = true;
-
-        # Disable telemetry
-        "telemetry.telemetryLevel" = "off";
-
-        "turboConsoleLog.includeFilename" = true;
-        "turboConsoleLog.includeLineNum" = true;
-        "turboConsoleLog.insertEnclosingClass" = true;
-        "turboConsoleLog.insertEnclosingFunction" = true;
-      };
-
-      # Manage keybindings
-      keybindings = [
-        {
-          "key" = "ctrl+shift+t";
-          "command" = "workbench.action.terminal.toggleTerminal";
-          "when" = "editorTextFocus";
-        }
-        {
-          "key" = "ctrl+alt+t";
-          "command" = "workbench.action.terminal.new";
-          "when" = "terminalFocus";
-        }
-      ];
-
-      # Install extensions
-      extensions = with pkgs.vscode-extensions; [
-        # attilabuti.vscode-mjml
-        # britesnow.vscode-toggle-quotes
-        # burkeholland.simple-react-snippets
-        # chakrounanas.turbo-console-log
-        # dsznajder.es7-react-js-snippets
-        # exodiusstudios.comment-anchors
-        # george-alisson.html-preview-vscode
-        # jasew.vscode-helix-emulation # optional
-        # ms-vscode.vscode-typescript-next
-        # pkief.material-icon-theme # optional
-        # steoates.autoimport
-        # wallabyjs.console-ninja # optional
-        adpyke.codesnap
-        bradlc.vscode-tailwindcss
-        dbaeumer.vscode-eslint
-        dracula-theme.theme-dracula
-        eamodio.gitlens
-        ecmel.vscode-html-css
-        # Tokyo Night theme (matching your tmux theme)
-        enkia.tokyo-night
-        esbenp.prettier-vscode
-        grapecity.gc-excelviewer
-        jnoortheen.nix-ide
-        meganrogge.template-string-converter
-        mikestead.dotenv
-        ms-python.python
-        oderwat.indent-rainbow
-        vscode-icons-team.vscode-icons
-        # Vim extension (optional, for vim keybindings)
-        vscodevim.vim
-        wix.vscode-import-cost
-        yoavbls.pretty-ts-errors
-        zainchen.json
-      ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-        # {
-        #   name = "remote-ssh";
-        #   publisher = "ms-vscode-remote";
-        #   version = "0.102.0"; # Use a specific version compatible with nixpkgs
-        #   sha256 = "sha256-0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0="; # Replace with actual sha256
-        # }
-      ];
-
-      # Enable mutable settings (optional)
-      mutableExtensionsDir = true; # Set to true if you want to allow manual extension installations
-    };
-
     zellij = {
       enable = true;
       # enableZshIntegration = true;
@@ -453,43 +344,33 @@ let
       enableCompletion = true;
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
-
       oh-my-zsh = {
         enable = true;
         package = pkgs.oh-my-zsh;
         plugins = ["git"];
       };
-
-      # Shell aliases (minimal, most in aliases.zsh)
-      shellAliases = {
-        hm = "home-manager";
-        pkg = "pkg_list";
-        update = "sudo nala update && sudo nala upgrade && flatpak update -y";
-      };
-
-      # History settings
-      history = {
-        size = 100000;
-        save = 100000;
-        path = "${config.home.homeDirectory}/.zsh_history";
-        ignoreDups = true;
-        share = true;
-        extended = true;
-      };
-
-      initExtra = ''
-        # Initialize zoxide
-        eval "$(zoxide init zsh)"
-
-        # Source fzf
-        source <(fzf --zsh)
-
-        # Source custom aliases and functions
-        source ~/.config/zsh/aliases.zsh
-        source ~/.config/zsh/functions.zsh
-
-        # Basic prompt (replace with Starship if enabled)
-        PROMPT='%F{blue}%n@%m%f %F{green}%~%f $ '
+      initContent = ''
+        alias cd="z"
+        alias ..="cd .."
+        alias ...="cd ../.."
+        alias ....="cd ../../.."
+        alias .....="cd ../../../.."
+        alias ......="cd ../../../../.."
+        alias ls="eza --icons"
+        alias lsa="eza --icons -a"
+        alias l="eza -l --icons --git -a"
+        alias lt="eza --tree --level=2 --long --icons --git"
+        alias ltree="eza --tree --level=3 --icons --git"
+        cx() { cd "$@" && lsa; }
+        fcd() { cd "$(find . -type d -not -path '*/.*' | fzf)" && l; }
+        f() { echo "$(find . -type f -not -path '*/.*' | fzf)" | pbcopy; }
+        fv() { nvi "$(find . -type f -not -path '*/.*' | fzf)"; }
+        update() { sudo apt update && sudo apt upgrade }
+        ytdlvideo() { yt-dlp --format "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]" "$@" && lsa; }
+        ytdlaudio() { yt-dlp --extract-audio --audio-format mp3 --audio-quality 0 "$@" && lsa; }
+        nixlist() { ls ~/.nix-profile/bin/; }
+        nixupdate() { nix run home-manager/release-24.11 -- switch --flake ~/.config/home-manager; }
+        nixclean() { nix-collect-garbage -d; }
       '';
     };
 
@@ -754,13 +635,8 @@ in {
   # Allow specific unfree packages
   nixpkgs.config = {
     allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-      "google-chrome"
-      "httpie-desktop"
-      "obsidian"
       "pritunl-client"
       "pritunl-client-electron"
-      "vscode"
-      "webstorm"
     ];
   };
 
@@ -772,7 +648,7 @@ in {
     ".config/ghostty/config" = {
       text = ''
         theme = catppuccin-mocha
-        # font-family = FiraCode Nerd Font
+        font-family = FiraCode Nerd Font
         font-size = 14
         mouse-hide-while-typing = true
         window-decoration = true
@@ -783,10 +659,6 @@ in {
         quick-terminal-position = center
         '';
     };
-
-    # Link functions.zsh and aliases.zsh from ~/.config/home-manager
-    ".config/zsh/functions.zsh".source = ./functions.zsh;
-    ".config/zsh/aliases.zsh".source = ./aliases.zsh;
   };
 
   # Activation scripts
@@ -799,11 +671,22 @@ in {
         echo "Nvim config already exist!"
       fi
     '';
+    initialize-starship = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      echo "Initializing Starship configuration..."
+      if [ ! -d "$HOME/.config/starship.toml" ]; then
+        /usr/bin/curl -L "${constants.starshipTomlUrl}" -o "$HOME/.config/starship.toml"
+        sed -i '1i add_newline = false' "$HOME/.config/starship.toml"
+      else
+        echo "starship.toml config already exist!"
+      fi
+    '';
   };
 
   # Environment variables
   home.sessionVariables = {
     EDITOR = "hx";
+    # Ensure Flatpak apps are accessible
+    PATH = "$HOME/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:$PATH";
   };
 
   # Services
@@ -823,23 +706,8 @@ in {
       # Optional: Add Flatpak apps here (see "How to Use" below)
       packages = [
         # Example: { appId = "org.telegram.desktop"; origin = "flathub"; }
-        { appId = "app.zen_browser.zen"; origin = "flathub"; }
-        # { appId = "com.google.Chrome"; origin = "flathub"; }
-        # { appId = "org.signal.Signal"; origin = "flathub"; }
-        # { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
-        # { appId = "io.httpie.Httpie"; origin = "flathub"; }
-        # { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
-        # { appId = "com.obsproject.Studio"; origin = "flathub"; }
-
-        # { appId = "org.gnome.World.Iotas"; origin = "flathub"; }
-        { appId = "io.github.mfat.jottr"; origin = "flathub"; }
-        # { appId = "org.kde.ghostwriter"; origin = "flathub"; }
-        # { appId = "org.gottcode.FocusWriter"; origin = "flathub"; }
         { appId = "org.jousse.vincent.Pomodorolm"; origin = "flathub"; }
-        { appId = "com.github.johnfactotum.QuickLookup"; origin = "flathub"; }
-        { appId = "xyz.safeworlds.hiit"; origin = "flathub"; }
       ];
-      # uninstallUnmanaged = true; # true: Remove apps not in package list; false: Keep existed
     };
   };
 
@@ -861,5 +729,14 @@ in {
     neovim.enable = true;
     cmus.enable = true;
     yt-dlp.enable = true;
+  };
+
+  # Optional: Configure GTK theming for Flatpak apps
+  gtk = {
+    enable = true;
+    theme = {
+      name = "Adwaita";
+      # package = pkgs.gnome.gnome-themes-extra;
+    };
   };
 }
