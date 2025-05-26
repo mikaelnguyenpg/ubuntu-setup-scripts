@@ -10,20 +10,24 @@ let
   };
 
   # Package definitions
+  # https://github.com/agarrharr/awesome-cli-apps?tab=readme-ov-file#music
   packages = with pkgs; {
     cliTools = [
+      bat
       boxes
-      btop
-      gtop
-      # gotop
-      # nvitop
+      cmatrix
       cowsay
+      delta
+      fd
       figlet
+      fortune
+      gtop
       httpie
+      jq
       lsd
-      # samba
-      spice-vdagent
-      # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
+      nodePackages.emoj
+      ripgrep
+      spice-vdagent # samba # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
       tldr
       xclip
     ];
@@ -31,13 +35,11 @@ let
       flameshot
       google-chrome
       httpie-desktop
-      # libchewing
-      # ibus-engines.bamboo
       libreoffice
       obsidian
       pritunl-client
       signal-desktop
-      vlc
+      vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     devTools = [
       bun
@@ -46,8 +48,8 @@ let
       emmet-ls
       eslint
       jetbrains.webstorm
-      nodePackages.prettier
       nodePackages.nodejs
+      nodePackages.prettier
       tailwindcss-language-server
       typescript
       typescript-language-server
