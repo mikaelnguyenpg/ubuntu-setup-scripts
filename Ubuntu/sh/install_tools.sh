@@ -59,7 +59,7 @@ configure_nix() {
 install_home_manager() {
     if [ ! -f ~/.config/home-manager/flake.nix ]; then
         log "Initializing home-manager with flakes"
-        nix run home-manager/release-24.11 -- init
+        nix run home-manager -- init
     else
         log "home-manager is already initialized"
     fi
@@ -207,7 +207,7 @@ for pkg in $ESSENTIALS; do
         log "$pkg is already installed"
     else
         log "Installing $pkg"
-        sudo nala install -y "$pkg"
+        sudo apt install -y "$pkg"
     fi
 done
 
@@ -216,7 +216,7 @@ if is_apt_installed timeshift; then
     log "timeshift is already installed"
 else
     log "Installing timeshift"
-    sudo nala install -y timeshift
+    sudo apt install -y timeshift
 fi
 
 # Check for existing Timeshift backups and create one if none exist
@@ -236,13 +236,13 @@ if command_exists ansible; then
     log "ansible is already installed"
 else
     log "Installing ansible"
-    sudo nala install -y ansible
+    sudo apt install -y ansible
 fi
 
 # Install flatpak and flatpak apps
 if ! command_exists flatpak; then
     log "Installing flatpak"
-    sudo nala install -y flatpak
+    sudo apt install -y flatpak
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 else
     log "flatpak is already installed"
@@ -262,7 +262,7 @@ done
 # Install snap and snap apps
 if ! command_exists snap; then
     log "Installing snap"
-    sudo nala install -y snapd
+    sudo apt install -y snapd
 else
     log "snap is already installed"
 fi
@@ -296,7 +296,7 @@ for pkg in $QEMU_PKGS; do
         log "$pkg is already installed"
     else
         log "Installing $pkg"
-        sudo nala install -y "$pkg"
+        sudo apt install -y "$pkg"
     fi
 done
 
@@ -335,7 +335,7 @@ done
 #         log "gnupg is already installed"
 #     else
 #         log "Installing gnupg"
-#         sudo nala install -y gnupg
+#         sudo apt install -y gnupg
 #     fi
 #
 #     # Import Pritunl GPG key
@@ -349,11 +349,11 @@ done
 #
 #     # Update APT cache
 #     log "Updating APT cache for Pritunl"
-#     sudo nala update
+#     sudo apt update
 #
 #     # Install pritunl-client-electron
 #     log "Installing pritunl-client-electron"
-#     sudo nala install -y pritunl-client-electron
+#     sudo apt install -y pritunl-client-electron
 # fi
 
 log "Installation complete. Please log out and log back in for group changes to take effect."

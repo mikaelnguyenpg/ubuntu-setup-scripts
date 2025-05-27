@@ -21,10 +21,13 @@ let
       fd
       figlet
       fortune
+      btop
+      gotop
       gtop
       httpie
       jq
       lsd
+      neofetch
       nodePackages.emoj
       ripgrep
       spice-vdagent # samba # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
@@ -32,17 +35,20 @@ let
       xclip
     ];
     media = [
+      # google-chrome
+      # obsidian
+      # signal-desktop
+      cava
+      cmus
       flameshot
-      google-chrome
       httpie-desktop
       libreoffice
-      obsidian
       pritunl-client
-      signal-desktop
       vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     devTools = [
       bun
+      charles
       deno
       dprint
       emmet-ls
@@ -103,13 +109,14 @@ let
 
       extraConfig = ''
         [keys.insert]
-        # k = { j = "normal_mode" }
         esc = ["collapse_selection", "keep_primary_selection", "normal_mode"]
 
         [keys.normal]
-        C-f = [ ":new", ":insert-output yazi", ":buffer-close!", ":redraw", ":reload-all" ]
-        C-g = [ ":new", ":insert-output lazygit", ":buffer-close!", ":redraw", ":reload-all" ]
         esc = ["collapse_selection", "keep_primary_selection", "normal_mode"]
+
+        [keys.normal."+"]
+        e = [ ":new", ":insert-output yazi", ":buffer-close!", ":redraw", ":reload-all" ]
+        g = [ ":new", ":insert-output lazygit", ":buffer-close!", ":redraw", ":reload-all" ]
       '';
 
       languages = {
@@ -445,9 +452,9 @@ let
     zellij = {
       enable = true;
       # enableZshIntegration = true;
-      settings = {
-        default_shell = "zsh";
-      };
+      # settings = {
+      #   default_shell = "zsh";
+      # };
     };
 
     zsh = {
@@ -756,13 +763,15 @@ in {
   # Allow specific unfree packages
   nixpkgs.config = {
     allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-      "google-chrome"
+      "charles"
       "httpie-desktop"
-      "obsidian"
       "pritunl-client"
       "pritunl-client-electron"
       "vscode"
       "webstorm"
+      # "google-chrome"
+      # "obsidian"
+      # "signal-desktop"
     ];
   };
 
@@ -780,6 +789,7 @@ in {
         window-decoration = true
         background-opacity = 0.8
         background-blur-radius = 20
+        maximize = false
         window-width = 800
         window-height = 600
         quick-terminal-position = center
@@ -826,9 +836,9 @@ in {
       packages = [
         # Example: { appId = "org.telegram.desktop"; origin = "flathub"; }
         { appId = "app.zen_browser.zen"; origin = "flathub"; }
-        # { appId = "com.google.Chrome"; origin = "flathub"; }
-        # { appId = "org.signal.Signal"; origin = "flathub"; }
-        # { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
+        { appId = "com.google.Chrome"; origin = "flathub"; }
+        { appId = "org.signal.Signal"; origin = "flathub"; }
+        { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
         # { appId = "io.httpie.Httpie"; origin = "flathub"; }
         # { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
         # { appId = "com.obsproject.Studio"; origin = "flathub"; }
@@ -837,6 +847,8 @@ in {
         { appId = "io.github.mfat.jottr"; origin = "flathub"; }
         # { appId = "org.kde.ghostwriter"; origin = "flathub"; }
         # { appId = "org.gottcode.FocusWriter"; origin = "flathub"; }
+        { appId = "com.github.tchx84.Flatseal"; origin = "flathub"; }
+        { appId = "org.kde.kclock"; origin = "flathub"; }
         { appId = "org.jousse.vincent.Pomodorolm"; origin = "flathub"; }
         { appId = "com.github.johnfactotum.QuickLookup"; origin = "flathub"; }
         { appId = "xyz.safeworlds.hiit"; origin = "flathub"; }
