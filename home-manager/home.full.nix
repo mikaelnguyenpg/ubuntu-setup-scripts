@@ -32,17 +32,20 @@ let
       xclip
     ];
     media = [
+      # google-chrome
+      # obsidian
+      # signal-desktop
+      cava
+      cmus
       flameshot
-      google-chrome
       httpie-desktop
       libreoffice
-      obsidian
       pritunl-client
-      signal-desktop
       vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     devTools = [
       bun
+      charles
       deno
       dprint
       emmet-ls
@@ -445,9 +448,9 @@ let
     zellij = {
       enable = true;
       # enableZshIntegration = true;
-      settings = {
-        default_shell = "zsh";
-      };
+      # settings = {
+      #   default_shell = "zsh";
+      # };
     };
 
     zsh = {
@@ -756,13 +759,15 @@ in {
   # Allow specific unfree packages
   nixpkgs.config = {
     allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-      "google-chrome"
+      "charles"
       "httpie-desktop"
-      "obsidian"
       "pritunl-client"
       "pritunl-client-electron"
       "vscode"
       "webstorm"
+      # "google-chrome"
+      # "obsidian"
+      # "signal-desktop"
     ];
   };
 
@@ -826,9 +831,9 @@ in {
       packages = [
         # Example: { appId = "org.telegram.desktop"; origin = "flathub"; }
         { appId = "app.zen_browser.zen"; origin = "flathub"; }
-        # { appId = "com.google.Chrome"; origin = "flathub"; }
-        # { appId = "org.signal.Signal"; origin = "flathub"; }
-        # { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
+        { appId = "com.google.Chrome"; origin = "flathub"; }
+        { appId = "org.signal.Signal"; origin = "flathub"; }
+        { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
         # { appId = "io.httpie.Httpie"; origin = "flathub"; }
         # { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
         # { appId = "com.obsproject.Studio"; origin = "flathub"; }
