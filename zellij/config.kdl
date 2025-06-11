@@ -12,7 +12,7 @@ keybinds clear-defaults=true {
         bind "Alt f" { ToggleFloatingPanes; }
         bind "Alt c" { NewPane; }
         bind "Alt z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
-        // bind "Alt x" { CloseFocus; SwitchToMode "normal"; }
+        bind "Alt q" { CloseFocus; SwitchToMode "normal"; }
         bind "Ctrl h" { MoveFocus "Left"; }
         bind "Ctrl l" { MoveFocus "Right"; }
         bind "Ctrl j" { MoveFocus "Down"; }

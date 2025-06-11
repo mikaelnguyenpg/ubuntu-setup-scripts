@@ -34,21 +34,13 @@ let
       tldr
       xclip
     ];
-    office = [
-      flameshot
-      libreoffice
-    ];
     media = [
       cava
       cmus
-      vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
-    ];
-    pritunl = [
+      flameshot
+      libreoffice
       pritunl-client
-      libcanberra-gtk3  # GTK3 module
-      mesa              # OpenGL support
-      mesa.drivers      # Mesa drivers
-      libGL             # OpenGL libraries
+      vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     ide = [
       jetbrains.webstorm
@@ -115,6 +107,56 @@ let
     helix = {
       enable = true;
       defaultEditor = true;
+      settings = {
+        editor = {
+          bufferline = "multiple";
+          cursorline = true;
+          line-number = "relative";
+          rulers = [80];
+          true-color = true;
+        };
+        editor.cursor-shape = {
+          insert = "bar";
+          normal = "block";
+          select = "underline";
+        };
+        editor.indent-guides = {
+          character = "╎";
+          render = true;
+        };
+        editor.lsp = {
+          auto-signature-help = false;
+          display-messages = true;
+          display-inlay-hints = true;
+        };
+        editor.statusline = {
+          left = ["mode" "spinner" "version-control" "file-name"];
+        };
+        editor.end-of-line-diagnostics = "hint";
+        editor.inline-diagnostics = {
+          cursor-line = "error";
+          other-lines = "disable";
+        };
+        editor.file-picker.hidden = false;
+      };
+
+      extraConfig = ''
+        [keys.insert]
+        esc = ["collapse_selection", "keep_primary_selection", "normal_mode"]
+
+        [keys.normal]
+        esc = ["collapse_selection", "keep_primary_selection", "normal_mode"]
+
+        [keys.normal."+"]
+        e = [ ":new", ":insert-output yazi", ":buffer-close!", ":redraw", ":reload-all" ]
+        g = [ ":new", ":insert-output lazygit", ":buffer-close!", ":redraw", ":reload-all" ]
+
+        # [keys.normal." "]
+        # e = {
+        #   f = [ ":new", ":insert-output yazi", ":buffer-close!", ":redraw", ":reload-all" ],
+        #   g = [ ":new", ":insert-output lazygit", ":buffer-close!", ":redraw", ":reload-all" ]
+        # }
+      '';
 
       languages = {
         language-server = {
@@ -767,30 +809,25 @@ in {
 
   # Dotfiles
   home.file = {
-    # ".config/ghostty/config" = {
-    #   text = ''
-    #     theme = catppuccin-mocha
-    #     # font-family = FiraCode Nerd Font
-    #     font-size = 14
-    #     mouse-hide-while-typing = true
-    #     window-decoration = true
-    #     background-opacity = 0.8
-    #     background-blur-radius = 20
-    #     maximize = false
-    #     window-width = 800
-    #     window-height = 600
-    #     quick-terminal-position = center
-    #     '';
-    # };
+    ".config/ghostty/config" = {
+      text = ''
+        theme = catppuccin-mocha
+        # font-family = FiraCode Nerd Font
+        font-size = 14
+        mouse-hide-while-typing = true
+        window-decoration = true
+        background-opacity = 0.8
+        background-blur-radius = 20
+        maximize = false
+        window-width = 800
+        window-height = 600
+        quick-terminal-position = center
+        '';
+    };
 
-    # # Copy ../helix/config.toml to ~/.config/helix
-    # ".config/helix/config.toml" = {
-    #   text = builtins.readFile ../helix/config.toml;
-    # };
-
-    # # Link functions.zsh and aliases.zsh from ~/.config/home-manager
-    # ".config/zsh/functions.zsh".source = ./functions.zsh;
-    # ".config/zsh/aliases.zsh".source = ./aliases.zsh;
+    # Link functions.zsh and aliases.zsh from ~/.config/home-manager
+    ".config/zsh/functions.zsh".source = ./functions.zsh;
+    ".config/zsh/aliases.zsh".source = ./aliases.zsh;
   };
 
   # Activation scripts

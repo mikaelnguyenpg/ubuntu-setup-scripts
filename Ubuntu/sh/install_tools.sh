@@ -74,16 +74,22 @@ install_home_manager() {
     #     log "home-manager is already installed"
     # fi
 
-    SAMPLE_DIR="../../home-manager"
-    HOME_DIR="$HOME/.config/home-manager"
-    SAMPLE_NIX="$SAMPLE_DIR/home.full.nix"
-    SAMPLE_FLAKE="$SAMPLE_DIR/flake.nix"
-    SAMPLE_FUNCTIONS="$SAMPLE_DIR/functions.zsh"
-    SAMPLE_ALIASES="$SAMPLE_DIR/aliases.zsh"
-    HOME_NIX="$HOME_DIR/home.nix"
-    HOME_FLAKE="$HOME_DIR/flake.nix"
-    HOME_FUNCTIONS="$HOME_DIR/functions.zsh"
-    HOME_ALIASES="$HOME_DIR/aliases.zsh"
+    SAMPLE_DIR="../.."
+    CONFIG_DIR="$HOME/.config"
+    SAMPLE_NIX="$SAMPLE_DIR/home-manager/home.full.nix"
+    SAMPLE_FLAKE="$SAMPLE_DIR/home-manager/flake.nix"
+    SAMPLE_FUNCTIONS="$SAMPLE_DIR/zsh/functions.zsh"
+    SAMPLE_ALIASES="$SAMPLE_DIR/zsh/aliases.zsh"
+    SAMPLE_HELIX="$SAMPLE_DIR/helix/config.toml"
+    SAMPLE_GHOSTTY="$SAMPLE_DIR/ghostty/config"
+    SAMPLE_ZELLIJ="$SAMPLE_DIR/zellij/config.kdl"
+    HOME_NIX="$CONFIG_DIR/home-manager/home.nix"
+    HOME_FLAKE="$CONFIG_DIR/home-manager/flake.nix"
+    HOME_FUNCTIONS="$CONFIG_DIR/zsh/functions.zsh"
+    HOME_ALIASES="$CONFIG_DIR/zsh/aliases.zsh"
+    HOME_HELIX="$CONFIG_DIR/helix/config.toml"
+    HOME_GHOSTTY="$CONFIG_DIR/ghostty/config"
+    HOME_ZELLIJ="$CONFIG_DIR/zellij/config.kdl"
 
     if [ -f "$SAMPLE_NIX" ]; then
         log "Copying home.full.nix to home.nix"
@@ -101,18 +107,35 @@ install_home_manager() {
         exit 1
     fi
 
+    mkdir -p "$CONFIG_DIR/zsh"
     if [ -f "$SAMPLE_FUNCTIONS" ]; then
-        log "Copying functions.zsh to $HOME_DIR"
+        log "Copying functions.zsh to $CONFIG_DIR"
         cp "$SAMPLE_FUNCTIONS" "$HOME_FUNCTIONS"
     else
         log "functions.zsh not found at $SAMPLE_FUNCTIONS"
     fi
 
     if [ -f "$SAMPLE_ALIASES" ]; then
-        log "Copying aliases.zsh to $HOME_DIR"
+        log "Copying aliases.zsh to $CONFIG_DIR"
         cp "$SAMPLE_ALIASES" "$HOME_ALIASES"
     else
         log "aliases.zsh not found at $SAMPLE_ALIASES"
+    fi
+
+    mkdir -p "$CONFIG_DIR/helix"
+    if [ -f "$SAMPLE_HELIX" ]; then
+        log "Copying helix/config.toml to $CONFIG_DIR"
+        cp "$SAMPLE_HELIX" "$HOME_HELIX"
+    else
+        log "functions.zsh not found at $SAMPLE_HELIX"
+    fi
+
+    mkdir -p "$CONFIG_DIR/ghostty"
+    if [ -f "$SAMPLE_GHOSTTY" ]; then
+        log "Copying ghostty/config to $CONFIG_DIR"
+        cp "$SAMPLE_GHOSTTY" "$HOME_GHOSTTY"
+    else
+        log "functions.zsh not found at $SAMPLE_GHOSTTY"
     fi
 }
 
