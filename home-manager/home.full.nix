@@ -44,11 +44,11 @@ let
       vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     pritunl = [
-      pritunl-client
-      libcanberra-gtk3  # GTK3 module
-      mesa              # OpenGL support
-      mesa.drivers      # Mesa drivers
-      libGL             # OpenGL libraries
+      # pritunl-client
+      # libcanberra-gtk3  # GTK3 module
+      # mesa              # OpenGL support
+      # mesa.drivers      # Mesa drivers
+      # libGL             # OpenGL libraries
     ];
     ide = [
       jetbrains.webstorm
