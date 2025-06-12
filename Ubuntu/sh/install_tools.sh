@@ -1,51 +1,191 @@
-#!/bin/sh
+#!/bin/bash
 
-# Simple script to install apps and tools on Ubuntu 24.04
-# Compatible with bash and zsh
+# install-tools.sh
+# Installs and configures tools on Ubuntu 24.04
+# Usage: ./install-tools.sh [install|remove]
+
 set -e
 
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
+# Constants
+NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
+CONFIG_DIR="$HOME/.config"
+HM_DIR="$CONFIG_DIR/home-manager"
+SAMPLE_DIR="$(dirname "$0")/../../home-manager"
+APT_PKGS="curl git neptune build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev"
+QEMU_PKGS="qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
+SNAP_APPS=""
+FLATPAK_APPS=""
+
+# Logging
+log() { printf "[INFO] %s\n" "$1"; }
+error() { printf "[ERROR] %s\n" "$1" >&2; exit 1; }
+
+# Check if command exists
+command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+# Check if apt package is installed
+is_apt_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"; }
+
+# Check if flatpak app is installed
+is_flatpak_installed() { flatpak list | grep -q "$1"; }
+
+# Check if snap package is installed
+is_snap_installed() { snap list "$1" >/dev/null 2>&1; }
+
+# Update and upgrade system
+update_system() {
+    log "Updating and upgrading system"
+    # if command_exists nala; then
+    #     sudo nala update && sudo nala upgrade -y
+    # else
+    sudo apt update && sudo apt upgrade -y
+    # fi
 }
 
-# Function to check if an apt package is installed
-is_apt_installed() {
-    dpkg-query --show --showformat='${Status}\n' "$1" 2>/dev/null | grep -q "install ok installed"
-}
-
-# Function to check if a flatpak app is installed
-is_flatpak_installed() {
-    flatpak list | grep -q "$1"
-}
-
-# Function to check if a snap package is installed
-is_snap_installed() {
-    snap list "$1" >/dev/null 2>&1
-}
-
-# Log message
-log() {
-    echo "[INFO] $1"
-}
-
-# Install Nix in single-user mode
-install_nix() {
-    if ! command_exists nix; then
-        log "Installing Nix"
-        sh <(curl -L https://nixos.org/nix/install) --no-daemon
+# Install nala
+install_nala() {
+    if command_exists nala; then
+        log "nala is already installed"
     else
-        log "Nix is already installed"
+        log "Installing nala"
+        sudo apt install -y nala && sudo nala fetch --auto -y
     fi
 }
 
-# Source Nix profile and enable flakes
-configure_nix() {
-    if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
-        log "Sourcing Nix profile"
-        . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+# Install apt packages
+install_apt_packages() {
+    local pkgs="$1"
+    for pkg in $pkgs; do
+        if is_apt_installed "$pkg"; then
+            log "$pkg is already installed"
+        else
+            log "Installing $pkg"
+            sudo apt install -y "$pkg"
+        fi
+    done
+}
+
+# Install flatpak and apps
+install_flatpak() {
+    if command_exists flatpak; then
+        log "flatpak is already installed"
+    else
+        log "Installing flatpak"
+        sudo apt install -y flatpak
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
 
+    for app in $FLATPAK_APPS; do
+        if is_flatpak_installed "$app"; then
+            log "$app is already installed"
+        else
+            log "Installing $app"
+            flatpak install -y flathub "$app"
+        fi
+    done
+}
+
+# Install snap and apps
+install_snap() {
+    if command_exists snap; then
+        log "snap is already installed"
+    else
+        log "Installing snap"
+        sudo apt install -y snapd
+    fi
+
+    for app in $SNAP_APPS; do
+        if is_snap_installed "$app"; then
+            log "$app is already installed"
+        else
+            log "Installing $app"
+            sudo snap install "$app" --classic
+        fi
+    done
+}
+
+# Install Timeshift and create backup
+install_timeshift() {
+    if is_apt_installed timeshift; then
+        log "timeshift is already installed"
+    else
+        log "Installing timeshift"
+        sudo apt install -y timeshift
+    fi
+
+    if command_exists timeshift && timeshift --list | grep -q "0 snapshots"; then
+        log "Creating initial Timeshift backup"
+        sudo timeshift --create --comments "Initial backup" --rsync
+    else
+        log "Timeshift backup already exists or Timeshift not installed"
+    fi
+}
+
+# Install Ansible
+install_ansible() {
+    if command_exists ansible; then
+        log "ansible is already installed"
+    else
+        log "Installing ansible"
+        sudo apt install -y ansible
+    fi
+}
+
+# Install Pritunl Client
+install_pritunl() {
+    if is_apt_installed pritunl-client-electron; then
+        log "Pritunl Client is already installed"
+        return
+    fi
+    log "Installing Pritunl Client"
+    sudo tee /etc/apt/sources.list.d/pritunl.list << EOF
+deb https://repo.pritunl.com/stable/apt noble main
+EOF
+    sudo apt install -y gnupg
+    gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A || error "Failed to fetch Pritunl GPG key"
+    gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | sudo tee /etc/apt/trusted.gpg.d/pritunl.asc
+    sudo apt update
+    sudo apt install -y pritunl-client-electron
+    log "Pritunl Client installed successfully"
+}
+
+# Remove Pritunl Client
+remove_pritunl() {
+    log "Removing Pritunl Client"
+    sudo pkill -f pritunl || true
+    if is_apt_installed pritunl-client-electron; then
+        sudo apt purge -y pritunl-client-electron
+        sudo apt autoremove -y
+    fi
+    sudo rm -f /etc/apt/sources.list.d/pritunl.list /etc/apt/trusted.gpg.d/pritunl.asc
+    sudo apt-key del 7568D9BB55FF9E5287D586017AE645C0CF8E292A 2>/dev/null || true
+    sudo apt update
+    rm -rf ~/.config/pritunl ~/.pritunl
+    if dpkg -l | grep -q pritunl; then
+        log "Warning: Pritunl packages may still be installed"
+    fi
+    if find / -name '*pritunl*' 2>/dev/null | grep -q .; then
+        log "Warning: Residual Pritunl files found. Run 'find / -name \"*pritunl*\"' to locate"
+    fi
+    log "Pritunl Client removed successfully"
+}
+
+# Install Nix
+install_nix() {
+    if command_exists nix; then
+        log "Nix is already installed"
+        return
+    fi
+    log "Installing Nix"
+    sh <(curl -L https://nixos.org/nix/install) --no-daemon || error "Nix installation failed"
+}
+
+# Configure Nix
+configure_nix() {
+    if [ -f "$NIX_PROFILE" ]; then
+        log "Sourcing Nix profile"
+        . "$NIX_PROFILE"
+    fi
     if ! grep -q "experimental-features = nix-command flakes" ~/.config/nix/nix.conf 2>/dev/null; then
         log "Enabling Nix flakes"
         mkdir -p ~/.config/nix
@@ -55,329 +195,106 @@ configure_nix() {
     fi
 }
 
-# Initialize home-manager with flakes and copy home.full.nix
+# Install and configure home-manager
 install_home_manager() {
-    if [ ! -f ~/.config/home-manager/flake.nix ]; then
-        log "Initializing home-manager with flakes"
-        nix run home-manager -- init
-    else
+    if [ -f "$HM_DIR/flake.nix" ]; then
         log "home-manager is already initialized"
-    fi
-
-    # # Install home-manager
-    # if ! command_exists home-manager; then
-    #   log "Installing home-manager"
-    #   nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-    #   nix-channel --update
-    #   nix-shell '<home-manager>' -A install
-    # else
-    #     log "home-manager is already installed"
-    # fi
-
-    SAMPLE_DIR="../.."
-    CONFIG_DIR="$HOME/.config"
-    SAMPLE_NIX="$SAMPLE_DIR/home-manager/home.full.nix"
-    SAMPLE_FLAKE="$SAMPLE_DIR/home-manager/flake.nix"
-    SAMPLE_FUNCTIONS="$SAMPLE_DIR/zsh/functions.zsh"
-    SAMPLE_ALIASES="$SAMPLE_DIR/zsh/aliases.zsh"
-    SAMPLE_HELIX="$SAMPLE_DIR/helix/config.toml"
-    SAMPLE_GHOSTTY="$SAMPLE_DIR/ghostty/config"
-    SAMPLE_ZELLIJ="$SAMPLE_DIR/zellij/config.kdl"
-    HOME_NIX="$CONFIG_DIR/home-manager/home.nix"
-    HOME_FLAKE="$CONFIG_DIR/home-manager/flake.nix"
-    HOME_FUNCTIONS="$CONFIG_DIR/zsh/functions.zsh"
-    HOME_ALIASES="$CONFIG_DIR/zsh/aliases.zsh"
-    HOME_HELIX="$CONFIG_DIR/helix/config.toml"
-    HOME_GHOSTTY="$CONFIG_DIR/ghostty/config"
-    HOME_ZELLIJ="$CONFIG_DIR/zellij/config.kdl"
-
-    if [ -f "$SAMPLE_NIX" ]; then
-        log "Copying home.full.nix to home.nix"
-        cp "$SAMPLE_NIX" "$HOME_NIX"
     else
-        log "home.full.nix not found at $SAMPLE_NIX"
-        exit 1
+        log "Initializing home-manager with flakes"
+        nix run home-manager -- init || error "home-manager initialization failed"
     fi
 
-    if [ -f "$SAMPLE_FLAKE" ]; then
-        log "Copying home.full.nix to home.nix"
-        cp "$SAMPLE_FLAKE" "$HOME_FLAKE"
-    else
-        log "flake.nix not found at $SAMPLE_FLAKE"
-        exit 1
-    fi
-
-    mkdir -p "$CONFIG_DIR/zsh"
-    if [ -f "$SAMPLE_FUNCTIONS" ]; then
-        log "Copying functions.zsh to $CONFIG_DIR"
-        cp "$SAMPLE_FUNCTIONS" "$HOME_FUNCTIONS"
-    else
-        log "functions.zsh not found at $SAMPLE_FUNCTIONS"
-    fi
-
-    if [ -f "$SAMPLE_ALIASES" ]; then
-        log "Copying aliases.zsh to $CONFIG_DIR"
-        cp "$SAMPLE_ALIASES" "$HOME_ALIASES"
-    else
-        log "aliases.zsh not found at $SAMPLE_ALIASES"
-    fi
-
-    mkdir -p "$CONFIG_DIR/helix"
-    if [ -f "$SAMPLE_HELIX" ]; then
-        log "Copying helix/config.toml to $CONFIG_DIR"
-        cp "$SAMPLE_HELIX" "$HOME_HELIX"
-    else
-        log "functions.zsh not found at $SAMPLE_HELIX"
-    fi
-
-    mkdir -p "$CONFIG_DIR/ghostty"
-    if [ -f "$SAMPLE_GHOSTTY" ]; then
-        log "Copying ghostty/config to $CONFIG_DIR"
-        cp "$SAMPLE_GHOSTTY" "$HOME_GHOSTTY"
-    else
-        log "functions.zsh not found at $SAMPLE_GHOSTTY"
-    fi
-}
-
-# Apply home-manager configuration
-apply_home_manager() {
-    HOME_NIX="$HOME/.config/home-manager/home.nix"
-    if [ -f "$HOME_NIX" ]; then
-        log "Applying home-manager configuration"
-        nix run home-manager/release-24.11 -- switch --flake ~/.config/home-manager
-        # nix-collect-garbage -d
-    else
-        log "home.nix not found; skipping home-manager activation"
-    fi
-
-    # if [ -f ~/.config/home-manager/home.nix ]; then
-    #     log "Install home-manager packages"
-    #     home-manager switch --show-trace
-    #     nix-collect-garbage -d
-    # else
-    #     log "home-manager is NOT available"
-    # fi
-}
-
-# Remove Nix, home-manager, and related files
-remove_nix() {
-    if [ -d ~/.nix-profile ] || [ -d ~/.nix ]; then
-        log "Removing Nix profile and store"
-        rm -rf ~/.nix-profile ~/.nix
-    else
-        log "Nix profile and store already removed"
-    fi
-
-    if [ -d ~/.nix-channels ] || [ -d ~/.nix-defexpr ]; then
-        log "Removing Nix channels"
-        rm -rf ~/.nix-channels ~/.nix-defexpr
-    else
-        log "Nix channels already removed"
-    fi
-
-    if [ -d ~/.config/nix ]; then
-        log "Removing Nix configuration"
-        rm -rf ~/.config/nix
-    else
-        log "Nix configuration already removed"
-    fi
-
-    if [ -d ~/.config/home-manager ]; then
-        log "Removing home-manager configuration"
-        rm -rf ~/.config/home-manager
-    else
-        log "home-manager configuration already removed"
-    fi
-
-    if [ -d ~/.local/state/nix ] || [ -d ~/.cache/nix ]; then
-        log "Removing Nix state and cache"
-        rm -rf ~/.local/state/nix ~/.cache/nix
-    else
-        log "Nix state and cache already removed"
-    fi
-
-    for shell_config in ~/.bashrc ~/.zshrc ~/.profile; do
-        if [ -f "$shell_config" ] && grep -q "nix-profile/etc/profile.d/nix.sh" "$shell_config"; then
-            log "Removing Nix from $shell_config"
-            sed -i '/nix-profile\/etc\/profile.d\/nix.sh/d' "$shell_config"
+    # Copy configuration files
+    local configs=(
+        "home-manager/home.full.nix:$HM_DIR/home.nix"
+        "home-manager/flake.nix:$HM_DIR/flake.nix"
+        "zsh/functions.zsh:$CONFIG_DIR/zsh/functions.zsh"
+        "zsh/aliases.zsh:$CONFIG_DIR/zsh/aliases.zsh"
+        "helix/config.toml:$CONFIG_DIR/helix/config.toml"
+        "ghostty/config:$CONFIG_DIR/ghostty/config"
+        "zellij/config.kdl:$CONFIG_DIR/zellij/config.kdl"
+    )
+    for config in "${configs[@]}"; do
+        local src="${config%%:*}" dest="${config##*:}"
+        src="../../$src"
+        mkdir -p "$(dirname "$dest")"
+        if [ -f "$src" ]; then
+            log "Copying $(basename "$src") to $(dirname "$dest")"
+            cp "$src" "$dest"
         else
-            log "No Nix shell integration found in $shell_config"
+            log "$(basename "$src") not found at $src"
         fi
     done
 }
 
-# Update and upgrade system
-log "Updating and upgrading system"
-if command_exists nala; then
-    sudo nala update && sudo nala upgrade -y
-else
-    sudo apt update && sudo apt upgrade -y
-fi
-
-# Install nala if not present
-if ! command_exists nala; then
-    log "Installing nala"
-    sudo apt install -y nala
-    sudo nala fetch --auto -y
-else
-    log "nala is already installed"
-fi
-
-# Install essential packages
-ESSENTIALS="curl git build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev"
-for pkg in $ESSENTIALS; do
-    if is_apt_installed "$pkg"; then
-        log "$pkg is already installed"
+# Apply home-manager
+apply_home_manager() {
+    if [ -f "$HM_DIR/home.nix" ]; then
+        log "Applying home-manager configuration"
+        nix run home-manager -- switch --flake "$HM_DIR" || error "home-manager apply failed"
     else
-        log "Installing $pkg"
-        sudo apt install -y "$pkg"
+        log "home.nix not found; skipping home-manager activation"
     fi
-done
+}
 
-# Install Timeshift and create initial backup
-if is_apt_installed timeshift; then
-    log "timeshift is already installed"
-else
-    log "Installing timeshift"
-    sudo apt install -y timeshift
-fi
+# Remove Nix and home-manager
+remove_nix() {
+    log "Removing Nix and home-manager"
+    local dirs=(
+        ~/.nix-profile ~/.nix ~/.nix-channels ~/.nix-defexpr
+        ~/.config/nix ~/.config/home-manager
+        ~/.local/state/nix ~/.cache/nix
+    )
+    for dir in "${dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            log "Removing $dir"
+            rm -rf "$dir"
+        else
+            log "$dir already removed"
+        fi
+    done
 
-# Check for existing Timeshift backups and create one if none exist
-if command_exists timeshift; then
-    if timeshift --list | grep -q "0 snapshots"; then
-        log "Creating initial Timeshift backup"
-        timeshift --create --comments "Initial backup" --rsync
-    else
-        log "Timeshift backup already exists"
-    fi
-else
-    log "Timeshift not installed; skipping backup"
-fi
+    for shell in ~/.bashrc ~/.zshrc ~/.profile; do
+        if [ -f "$shell" ] && grep -q "nix-profile/etc/profile.d/nix.sh" "$shell"; then
+            log "Removing Nix from $shell"
+            sed -i '/nix-profile\/etc\/profile.d\/nix.sh/d' "$shell"
+        else
+            log "No Nix shell integration in $shell"
+        fi
+    done
+}
 
-# Install ansible
-if command_exists ansible; then
-    log "ansible is already installed"
-else
-    log "Installing ansible"
-    sudo apt install -y ansible
-fi
-
-# Install flatpak and flatpak apps
-if ! command_exists flatpak; then
-    log "Installing flatpak"
-    sudo apt install -y flatpak
-    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-else
-    log "flatpak is already installed"
-fi
-
-# FLATPAK_APPS="com.google.Chrome com.obsproject.Studio io.httpie.Httpie md.obsidian.Obsidian org.jousse.vincent.Pomodorolm org.libreoffice.LibreOffice org.signal.Signal"
-FLATPAK_APPS=""
-for app in $FLATPAK_APPS; do
-    if is_flatpak_installed "$app"; then
-        log "$app is already installed"
-    else
-        log "Installing $app"
-        flatpak install -y flathub "$app"
-    fi
-done
-
-# Install snap and snap apps
-if ! command_exists snap; then
-    log "Installing snap"
-    sudo apt install -y snapd
-else
-    log "snap is already installed"
-fi
-
-SNAP_APPS="ghostty"
-for app in $SNAP_APPS; do
-    if is_snap_installed "$app"; then
-        log "$app is already installed"
-    else
-        log "Installing $app"
-        snap install "$app" --classic
-    fi
-done
-
-# Main logic for Nix installation or removal
-INSTALL_NIX=true # Set to true to install, false to remove
-
-if [ "$INSTALL_NIX" = "true" ]; then
+# Main installation function
+install_all() {
+    update_system
+    # install_nala
+    install_apt_packages "$APT_PKGS"
+    install_timeshift
+    install_ansible
+    install_flatpak
+    install_snap
     install_nix
     configure_nix
     install_home_manager
     apply_home_manager
-else
-    remove_nix
-fi
+    install_apt_packages "$QEMU_PKGS"
+}
 
-# Install QEMU/KVM and virtualization tools
-QEMU_PKGS="qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent" # spice-vdagent samba
-for pkg in $QEMU_PKGS; do
-    if is_apt_installed "$pkg"; then
-        log "$pkg is already installed"
-    else
-        log "Installing $pkg"
-        sudo apt install -y "$pkg"
-    fi
-done
+# Main logic
+case "$1" in
+    install)
+        install_all
+        install_pritunl
+        ;;
+    remove)
+        remove_pritunl
+        remove_nix
+        ;;
+    *)
+        install_all
+        install_pritunl
+        ;;
+esac
 
-# # Enable and start libvirtd service
-# if systemctl is-active --quiet libvirtd; then
-#     log "libvirtd service is already running"
-# else
-#     log "Enabling and starting libvirtd service"
-#     systemctl enable libvirtd
-#     systemctl start libvirtd
-# fi
-
-# # Add user to libvirt group
-# if groups "$USER" | grep -q libvirt; then
-#     log "User $USER is already in libvirt group"
-# else
-#     log "Adding user $USER to libvirt group"
-#     usermod -aG libvirt "$USER"
-# fi
-
-# # Install Pritunl VPN Client
-# if is_apt_installed pritunl-client-electron; then
-#     log "pritunl-client-electron is already installed"
-# else
-#     log "Installing Pritunl VPN Client"
-#     # Add Pritunl APT repository
-#     if [ ! -f /etc/apt/sources.list.d/pritunl.list ]; then
-#         log "Adding Pritunl APT repository"
-#         sudo sh -c "printf 'deb https://repo.pritunl.com/stable/apt oracular main\n' > /etc/apt/sources.list.d/pritunl.list"
-#     else
-#         log "Pritunl APT repository already exists"
-#     fi
-#
-#     # Install gnupg
-#     if is_apt_installed gnupg; then
-#         log "gnupg is already installed"
-#     else
-#         log "Installing gnupg"
-#         sudo apt install -y gnupg
-#     fi
-#
-#     # Import Pritunl GPG key
-#     if [ ! -f /etc/apt/trusted.gpg.d/pritunl.asc ]; then
-#         log "Importing Pritunl GPG key"
-#         gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A
-#         gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | sudo tee /etc/apt/trusted.gpg.d/pritunl.asc > /dev/null
-#     else
-#         log "Pritunl GPG key already imported"
-#     fi
-#
-#     # Update APT cache
-#     log "Updating APT cache for Pritunl"
-#     sudo apt update
-#
-#     # Install pritunl-client-electron
-#     log "Installing pritunl-client-electron"
-#     sudo apt install -y pritunl-client-electron
-# fi
-
-log "Installation complete. Please log out and log back in for group changes to take effect."
+log "Installation complete. Log out and back in for group changes to take effect."
 exit 0

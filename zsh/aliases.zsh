@@ -1,6 +1,8 @@
 # Zsh aliases and custom functions for user eagle
 # Managed by Home-Manager on Ubuntu 24.04
 
+alias cl=clear
+
 # Navigation aliases
 alias cd="z"
 alias ..="cd .."
@@ -11,17 +13,30 @@ alias ......="cd ../../../../.."
 
 # Eza (modern ls replacement)
 alias ls="eza --icons"
-alias lsa="eza --icons -a"
-alias l="eza -l --icons --git -a"
-alias lt="eza --tree --level=2 --long --icons --git"
-alias ltree="eza --tree --level=3 --icons --git"
+alias la="eza --icons -a"
+alias ll="eza -l --icons --git"
+alias lla="eza -l --icons --git -a"
+alias lt="eza --tree --level=1 --icons --git -I node_modules"
+alias ltl="lt --long"
+
+# alias ls="lsd"
+# alias ll='ls -l'
+# alias la='ls -a'
+# alias lla='ls -la'
+# alias lt='ls --tree -I node_modules'
+
+alias sourcea="source ~/.config/zsh/aliases.zsh"
+alias sourcez="source ~/.zshrc"
+
+alias neo="nixGL neovide > /dev/null 2>&1 &"
+alias nghostty="nixGL ghostty > /dev/null 2>&1 &"
 
 # --- Utilities ---
 # Change directory and list
-cx() { cd "$@" && lsa; }
+cx() { cd "$@" && la; }
 
 # Fuzzy find directory and change
-fcd() { cd "$(find . -type d -not -path '*/.*' | fzf)" && l; }
+fcd() { cd "$(find . -type d -not -path '*/.*' | fzf)" && ll; }
 
 # Fuzzy find file and copy path to clipboard
 f() { echo "$(find . -type f -not -path '*/.*' | fzf)" | xclip -selection clipboard; }
@@ -30,3 +45,5 @@ f() { echo "$(find . -type f -not -path '*/.*' | fzf)" | xclip -selection clipbo
 fv() { nvim "$(find . -type f -not -path '*/.*' | fzf)"; }
 # Fuzzy find file and open in helix
 fh() { hx "$(find . -type f -not -path '*/.*' | fzf)"; }
+# Fuzzy find file and open in bat
+fb() { bat "$(find . -type f -not -path '*/.*' | fzf)"; }

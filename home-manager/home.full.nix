@@ -35,6 +35,7 @@ let
       xclip
     ];
     office = [
+      ghostty
       flameshot
       libreoffice
     ];
@@ -44,14 +45,15 @@ let
       vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     pritunl = [
-      pritunl-client
-      libcanberra-gtk3  # GTK3 module
-      mesa              # OpenGL support
-      mesa.drivers      # Mesa drivers
-      libGL             # OpenGL libraries
+      # httpie-desktop
+      # pritunl-client
     ];
     ide = [
       jetbrains.webstorm
+      # helix
+      # neovim
+      neovide
+      notepadqq
     ];
     devTools = [
       # Node
@@ -77,25 +79,27 @@ let
 
   unfreePackages = pkg: builtins.elem (lib.getName pkg) [
     "charles"
-    "httpie-desktop"
-    "pritunl-client"
-    "pritunl-client-electron"
+    # "httpie-desktop"
+    # "pritunl-client"
+    # "pritunl-client-electron"
     "vscode"
     "webstorm"
   ];
 
   # Combine all packages into a single list
-  allPackages = with packages; cliTools ++ media ++ devTools;
+  allPackages = with packages; cliTools ++ office ++ media ++ pritunl ++ ide ++ devTools;
 
   # Flatpak packages
   flatpakPackages = [
     # Example: { appId = "org.telegram.desktop"; origin = "flathub"; }
+    { appId = "com.github.tchx84.Flatseal"; origin = "flathub"; }
     { appId = "app.zen_browser.zen"; origin = "flathub"; }
     { appId = "com.google.Chrome"; origin = "flathub"; }
     { appId = "org.signal.Signal"; origin = "flathub"; }
     { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
-    { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
+    # { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
     { appId = "io.httpie.Httpie"; origin = "flathub"; }
+    # { appId = "dev.neovide.neovide"; origin = "flathub"; }
     # { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
     # { appId = "com.obsproject.Studio"; origin = "flathub"; }
     
@@ -826,7 +830,7 @@ in {
       ];
       # Optional: Add Flatpak apps here (see "How to Use" below)
       packages = flatpakPackages;
-      uninstallUnmanaged = true; # true: Remove apps not in package list; false: Keep existed
+      uninstallUnmanaged = false; # true: Remove apps not in package list; false: Keep existed
     };
   };
 
@@ -846,6 +850,7 @@ in {
     git.enable = true;
     vim.enable = true;
     neovim.enable = true;
+    neovide.enable = true;
     cmus.enable = true;
     yt-dlp.enable = true;
   };
