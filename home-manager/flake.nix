@@ -8,16 +8,26 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixGL = {
+      url = "github:nix-community/nixGL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flatpak.url = "github:gmodena/nix-flatpak";
   };
 
-  outputs = { nixpkgs, home-manager, flatpak, ... }:
+  outputs = { nixpkgs, home-manager, flatpak, nixGL, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      username = "eagle";
     in {
-      homeConfigurations."eagle" = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
+      homeConfigurations."${username}" = home-manager.lib.homeManagerConfiguration {
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
+
+        extraSpecialArgs = { inherit nixGL; };
 
         # Specify your home configuration modules here, for example,
         # the path to your home.nix.

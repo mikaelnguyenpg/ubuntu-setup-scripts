@@ -1,11 +1,11 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, nixGL, ... }:
 
 let
   # Constants and external resources
   constants = {
     username = "eagle";
     homeDir = "/home/eagle";
-    stateVersion = "24.11";
+    stateVersion = "25.05";
     lazyvimRepo = "https://github.com/mikaelnguyenpg/nvim-starter.git";
   };
 
@@ -24,6 +24,7 @@ let
       # btop
       gotop
       # gtop
+      git
       httpie
       jq
       lsd
@@ -35,7 +36,6 @@ let
       xclip
     ];
     office = [
-      ghostty
       flameshot
       libreoffice
     ];
@@ -45,21 +45,19 @@ let
       vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
     pritunl = [
-      # httpie-desktop
       # pritunl-client
     ];
     ide = [
-      jetbrains.webstorm
-      # helix
-      # neovim
+      ghostty
       neovide
       notepadqq
+      jetbrains.webstorm
     ];
     devTools = [
       # Node
       bun
       charles
-      deno
+      # deno
       dprint
       emmet-ls
       eslint
@@ -75,16 +73,12 @@ let
       # Python
       uv
     ];
+    # nixGLTools = [
+    #   (config.lib.nixGL.wrap ghostty)
+    #   (config.lib.nixGL.wrap neovide)
+    #   (config.lib.nixGL.wrap notepadqq)
+    # ];
   };
-
-  unfreePackages = pkg: builtins.elem (lib.getName pkg) [
-    "charles"
-    # "httpie-desktop"
-    # "pritunl-client"
-    # "pritunl-client-electron"
-    "vscode"
-    "webstorm"
-  ];
 
   # Combine all packages into a single list
   allPackages = with packages; cliTools ++ office ++ media ++ pritunl ++ ide ++ devTools;
@@ -756,15 +750,17 @@ let
   };
 
 in {
+  # nixGL
+  nixGL = {
+    packages = nixGL.packages; # Import nixGL package set
+    defaultWrapper = "Mesa"; # Use Mesa for Intel/AMD or Nouveau
+    installScripts = ["mesa"]; # Install nixGLMesa script
+  };
+
   # Core Home Manager settings
   home.username = constants.username;
   home.homeDirectory = constants.homeDir;
   home.stateVersion = constants.stateVersion;
-
-  # Allow specific unfree packages
-  nixpkgs.config = {
-    allowUnfreePredicate = unfreePackages;
-  };
 
   # Packages
   home.packages = allPackages;
@@ -792,9 +788,9 @@ in {
     #   text = builtins.readFile ../helix/config.toml;
     # };
 
-    # # Link functions.zsh and aliases.zsh from ~/.config/home-manager
-    # ".config/zsh/functions.zsh".source = ./functions.zsh;
-    # ".config/zsh/aliases.zsh".source = ./aliases.zsh;
+    # Link functions.zsh and aliases.zsh from ~/.config/home-manager
+    # ".config/zsh/functions.zsh".source = "./functions.zsh";
+    # ".config/zsh/aliases.zsh".source = "./aliases.zsh";
   };
 
   # Activation scripts
@@ -812,6 +808,7 @@ in {
   # Environment variables
   home.sessionVariables = {
     EDITOR = "hx";
+    PATH = "$HOME/.nix-profile/bin:$PATH";
   };
 
   # Services
