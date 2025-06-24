@@ -9,6 +9,13 @@ let
     lazyvimRepo = "https://github.com/mikaelnguyenpg/nvim-starter.git";
   };
 
+  # Override VS Code to include --no-sandbox flag
+  vscode-no-sandbox = pkgs.vscode.overrideAttrs (oldAttrs: {
+    postInstall = (oldAttrs.postInstall or "") + ''
+      wrapProgram $out/bin/code --add-flags "--no-sandbox"
+    '';
+  });
+
   # Package definitions
   # https://github.com/agarrharr/awesome-cli-apps?tab=readme-ov-file#music
   packages = with pkgs; {
@@ -48,9 +55,6 @@ let
       # pritunl-client
     ];
     ide = [
-      ghostty
-      neovide
-      notepadqq
       jetbrains.webstorm
     ];
     devTools = [
@@ -73,15 +77,15 @@ let
       # Python
       uv
     ];
-    # nixGLTools = [
-    #   (config.lib.nixGL.wrap ghostty)
-    #   (config.lib.nixGL.wrap neovide)
-    #   (config.lib.nixGL.wrap notepadqq)
-    # ];
+    nixGLTools = [
+      (config.lib.nixGL.wrap ghostty)
+      (config.lib.nixGL.wrap neovide)
+      (config.lib.nixGL.wrap notepadqq)
+    ];
   };
 
   # Combine all packages into a single list
-  allPackages = with packages; cliTools ++ office ++ media ++ pritunl ++ ide ++ devTools;
+  allPackages = with packages; cliTools ++ office ++ media ++ pritunl ++ ide ++ devTools ++ nixGLTools;
 
   # Flatpak packages
   flatpakPackages = [
@@ -93,15 +97,14 @@ let
     { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
     # { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
     { appId = "io.httpie.Httpie"; origin = "flathub"; }
-    # { appId = "dev.neovide.neovide"; origin = "flathub"; }
     # { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
-    # { appId = "com.obsproject.Studio"; origin = "flathub"; }
+    { appId = "com.obsproject.Studio"; origin = "flathub"; }
+    { appId = "org.keepassxc.KeePassXC"; origin = "flathub"; }
     
     # { appId = "org.gnome.World.Iotas"; origin = "flathub"; }
     { appId = "io.github.mfat.jottr"; origin = "flathub"; }
     # { appId = "org.kde.ghostwriter"; origin = "flathub"; }
     # { appId = "org.gottcode.FocusWriter"; origin = "flathub"; }
-    # { appId = "com.github.tchx84.Flatseal"; origin = "flathub"; }
     { appId = "org.kde.kclock"; origin = "flathub"; }
     # { appId = "org.jousse.vincent.Pomodorolm"; origin = "flathub"; }
     # { appId = "com.github.johnfactotum.QuickLookup"; origin = "flathub"; }
@@ -343,9 +346,13 @@ let
 
     vscode = {
       enable = true;
-      package = pkgs.vscode;
+      package = vscode-no-sandbox;
+      # package = pkgs.vscode.fhs;
 
-      userSettings = {
+      # Enable mutable settings (optional)
+      mutableExtensionsDir = true; # Set to true if you want to allow manual extension installations
+
+      profiles.default.userSettings = {
         # General settings
         "editor.fontSize" = 14;
         "editor.tabSize" = 2;
@@ -383,7 +390,7 @@ let
       };
 
       # Manage keybindings
-      keybindings = [
+      profiles.default.keybindings = [
         {
           "key" = "ctrl+shift+t";
           "command" = "workbench.action.terminal.toggleTerminal";
@@ -397,7 +404,7 @@ let
       ];
 
       # Install extensions
-      extensions = with pkgs.vscode-extensions; [
+      profiles.default.extensions = with pkgs.vscode-extensions; [
         # attilabuti.vscode-mjml
         # britesnow.vscode-toggle-quotes
         # burkeholland.simple-react-snippets
@@ -431,25 +438,11 @@ let
         wix.vscode-import-cost
         yoavbls.pretty-ts-errors
         zainchen.json
-      ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-        # {
-        #   name = "remote-ssh";
-        #   publisher = "ms-vscode-remote";
-        #   version = "0.102.0"; # Use a specific version compatible with nixpkgs
-        #   sha256 = "sha256-0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0+0h0="; # Replace with actual sha256
-        # }
       ];
-
-      # Enable mutable settings (optional)
-      mutableExtensionsDir = true; # Set to true if you want to allow manual extension installations
     };
 
     zellij = {
       enable = true;
-      # enableZshIntegration = true;
-      # settings = {
-      #   default_shell = "zsh";
-      # };
     };
 
     zsh = {
@@ -753,9 +746,18 @@ in {
   # nixGL
   nixGL = {
     packages = nixGL.packages; # Import nixGL package set
-    defaultWrapper = "Mesa"; # Use Mesa for Intel/AMD or Nouveau
+    defaultWrapper = "mesa"; # Use Mesa for Intel/AMD or Nouveau
     installScripts = ["mesa"]; # Install nixGLMesa script
+    # defaultWrapper = "nvidia"; # Use Nvidia proprietary driver
+    # nvidiaVersion = "570.133.07"; # Matches your nvidia-smi output
+    # installScripts = [ "nvidia" ]; # Install nixGLNvidia script
   };
+
+  # nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+  #   "charles"
+  #   "vscode"
+  #   "webstorm"
+  # ];
 
   # Core Home Manager settings
   home.username = constants.username;
@@ -809,6 +811,7 @@ in {
   home.sessionVariables = {
     EDITOR = "hx";
     PATH = "$HOME/.nix-profile/bin:$PATH";
+    XDG_DATA_DIRS = "$HOME/.nix-profile/share:$XDG_DATA_DIRS"; # For desktop integration
   };
 
   # Services
@@ -847,7 +850,6 @@ in {
     git.enable = true;
     vim.enable = true;
     neovim.enable = true;
-    neovide.enable = true;
     cmus.enable = true;
     yt-dlp.enable = true;
   };

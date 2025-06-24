@@ -3,6 +3,8 @@
 # install-tools.sh
 # Installs and configures tools on Ubuntu 24.04
 # Usage: ./install-tools.sh [install|remove]
+# check session type: `echo $XDG_SESSION_TYPE` # Wayland, X11
+# install x11 session: `x11-apps`
 
 set -e
 
@@ -11,8 +13,8 @@ NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
 CONFIG_DIR="$HOME/.config"
 HM_DIR="$CONFIG_DIR/home-manager"
 SAMPLE_DIR="$(dirname "$0")/../../home-manager"
-APT_PKGS="curl ibus-unikey ibus-chewing build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev"
-QEMU_PKGS="qemu-system-x86 git-man grub-pc-bin liberror-perl qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
+APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg"
+QEMU_PKGS="qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
 SNAP_APPS=""
 FLATPAK_APPS=""
 
@@ -35,11 +37,11 @@ is_snap_installed() { snap list "$1" >/dev/null 2>&1; }
 # Update and upgrade system
 update_system() {
     log "Updating and upgrading system"
-    # if command_exists nala; then
-    #     sudo nala update && sudo nala upgrade -y
-    # else
-    sudo apt update && sudo apt upgrade -y
-    # fi
+    if command_exists nala; then
+        sudo nala update && sudo nala upgrade -y
+    else
+        sudo apt update && sudo apt upgrade -y
+    fi
 }
 
 # Install nala
@@ -60,7 +62,7 @@ install_apt_packages() {
             log "$pkg is already installed"
         else
             log "Installing $pkg"
-            sudo apt install -y "$pkg"
+            sudo nala install -y "$pkg"
         fi
     done
 }
@@ -71,7 +73,7 @@ install_flatpak() {
         log "flatpak is already installed"
     else
         log "Installing flatpak"
-        sudo apt install -y flatpak
+        sudo nala install -y flatpak
         flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
 
@@ -91,7 +93,7 @@ install_snap() {
         log "snap is already installed"
     else
         log "Installing snap"
-        sudo apt install -y snapd
+        sudo nala install -y snapd
     fi
 
     for app in $SNAP_APPS; do
@@ -110,7 +112,7 @@ install_timeshift() {
         log "timeshift is already installed"
     else
         log "Installing timeshift"
-        sudo apt install -y timeshift
+        sudo nala install -y timeshift
     fi
 
     if command_exists timeshift && timeshift --list | grep -q "0 snapshots"; then
@@ -127,7 +129,7 @@ install_ansible() {
         log "ansible is already installed"
     else
         log "Installing ansible"
-        sudo apt install -y ansible
+        sudo nala install -y ansible
     fi
 }
 
@@ -231,7 +233,7 @@ install_home_manager() {
 apply_home_manager() {
     if [ -f "$HM_DIR/home.nix" ]; then
         log "Applying home-manager configuration"
-        nix run home-manager -- switch --flake "$HM_DIR" || error "home-manager apply failed"
+        nix run home-manager --show-trace -- switch --flake "$HM_DIR" || error "home-manager apply failed"
     else
         log "home.nix not found; skipping home-manager activation"
     fi

@@ -30,9 +30,10 @@ alias ltl="lt --long"
 alias sourcea="source ~/.config/zsh/aliases.zsh"
 alias sourcez="source ~/.zshrc"
 
-nneovide() { neovide "$@" > /dev/null 2>&1 &; }
-nghostty() { ghostty "$@" > /dev/null 2>&1 &; }
-nnotepad() { notepadqq "$@" > /dev/null 2>&1 &; }
+nneovide() { nixGL neovide "$@" > /dev/null 2>&1 &; }
+nghostty() { nixGL ghostty "$@" > /dev/null 2>&1 &; }
+nnotepad() { nixGL notepadqq "$@" > /dev/null 2>&1 &; }
+ncode() { code --no-sandbox "$@" > /dev/null 2>&1 &; }
 
 # --- Utilities ---
 # Change directory and list
