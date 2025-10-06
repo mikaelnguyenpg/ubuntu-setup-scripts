@@ -333,3 +333,31 @@ f() { echo "$(find . -type f -not -path '*/.*' | fzf)" | xclip -selection clipbo
 fv() { nvim "$(find . -type f -not -path '*/.*' | fzf)"; }
 # Fuzzy find file and open in helix
 fh() { hx "$(find . -type f -not -path '*/.*' | fzf)"; }
+# Fuzzy find file and open in bat
+fb() { bat "$(find . -type f -not -path '*/.*' | fzf)"; }
+
+# --- Nix functions ---
+nneovide() { nixGL neovide "$@" > /dev/null 2>&1 &; }
+nghostty() { nixGL ghostty "$@" > /dev/null 2>&1 &; }
+nnotepad() { nixGL notepadqq "$@" > /dev/null 2>&1 &; }
+ncode() { code --no-sandbox "$@" > /dev/null 2>&1 &; }
+
+# --- Other functions(Mine) ---
+mbsl() {
+  ~/.local/bin/BrowserStackLocal --key gJjMRxK6KtMx5o9XbJsb > /dev/null 2>&1 &
+}
+mcharles() { charles > /dev/null >2&1 &; }
+mpritunl() { sudo systemctl restart pritunl-client.service && sudo systemctl status pritunl-client.service && pritunl-client-electron > /dev/null >2&1 &; }
+
+# Function to set local Git user email and name
+# Usage: git_set_user <email> <name>
+set-git-user() {
+  if [[ $# -ne 2 ]]; then
+    echo "Usage: git_set_user <email> <name>"
+    return 1
+  fi
+
+  git config --local user.email "$1"
+  git config --local user.name "$2"
+  echo "Set local Git user to email: $1, name: $2"
+}

@@ -16,9 +16,13 @@ let
     '';
   });
 
+  nixpkgs.config.permittedInsecurePackages = [
+    "qtwebengine-5.15.19"
+  ];
   # Package definitions
   # https://github.com/agarrharr/awesome-cli-apps?tab=readme-ov-file#music
   packages = with pkgs; {
+    empty = [];
     cliTools = [
       bat
       boxes
@@ -35,26 +39,23 @@ let
       httpie
       jq
       lsd
-      neofetch
-      nodePackages.emoj
+      # neofetch
+      # nodePackages.emoj
       ripgrep
-      spice-vdagent # samba # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
+      # spice-vdagent # samba # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
       tldr
       xclip
     ];
     office = [
       flameshot
-      libreoffice
     ];
     media = [
       cava
       cmus
       vlc # https://extensions.gnome.org/extension/5624/sound-visualizer/
     ];
-    pritunl = [
-      # pritunl-client
-    ];
     ide = [
+      helix
       jetbrains.webstorm
     ];
     devTools = [
@@ -62,7 +63,7 @@ let
       bun
       charles
       # deno
-      dprint
+      # dprint
       emmet-ls
       eslint
       nodePackages.nodejs
@@ -80,12 +81,13 @@ let
     nixGLTools = [
       (config.lib.nixGL.wrap ghostty)
       (config.lib.nixGL.wrap neovide)
-      (config.lib.nixGL.wrap notepadqq)
+      # (config.lib.nixGL.wrap notepadqq)
     ];
   };
 
   # Combine all packages into a single list
-  allPackages = with packages; cliTools ++ office ++ media ++ pritunl ++ ide ++ devTools ++ nixGLTools;
+  # allPackages = with packages; empty;
+  allPackages = with packages; cliTools ++ office ++ media ++ ide ++ devTools ++ nixGLTools;
 
   # Flatpak packages
   flatpakPackages = [
@@ -97,9 +99,10 @@ let
     { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
     # { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
     { appId = "io.httpie.Httpie"; origin = "flathub"; }
-    # { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
+    { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
     { appId = "com.obsproject.Studio"; origin = "flathub"; }
     { appId = "org.keepassxc.KeePassXC"; origin = "flathub"; }
+    { appId = "io.github.dvlv.boxbuddyrs"; origin = "flathub"; }
     
     # { appId = "org.gnome.World.Iotas"; origin = "flathub"; }
     { appId = "io.github.mfat.jottr"; origin = "flathub"; }
@@ -354,6 +357,7 @@ let
 
       profiles.default.userSettings = {
         # General settings
+        "editor.lineNumbers" = "relative";
         "editor.fontSize" = 14;
         "editor.tabSize" = 2;
         "editor.formatOnSave" = true;
@@ -370,14 +374,15 @@ let
           "<C-a>" = false;
           "<C-f>" = false;
           "<C-p>" = false;
+          "<C-w>" = false;
         };
         "vim.leader" = "<space>";
-        "vim.normalModeKeyBindingsNonRecursive" = [
-          {
-            "before" = ["ctrl" "w"];
-            "commands" = ["workbench.action.files.save"];
-          }
-        ];
+        # "vim.normalModeKeyBindingsNonRecursive" = [
+        #   {
+        #     "before" = ["ctrl" "w"];
+        #     "commands" = ["workbench.action.files.save"];
+        #   }
+        # ];
         "vim.useSystemClipboard" = true;
 
         # Disable telemetry
@@ -417,12 +422,14 @@ let
         # pkief.material-icon-theme # optional
         # steoates.autoimport
         # wallabyjs.console-ninja # optional
+
         adpyke.codesnap
         bradlc.vscode-tailwindcss
         dbaeumer.vscode-eslint
         dracula-theme.theme-dracula
         eamodio.gitlens
         ecmel.vscode-html-css
+
         # Tokyo Night theme (matching your tmux theme)
         enkia.tokyo-night
         esbenp.prettier-vscode
@@ -430,9 +437,10 @@ let
         jnoortheen.nix-ide
         meganrogge.template-string-converter
         mikestead.dotenv
-        ms-python.python
+        # ms-python.python # BUG:
         oderwat.indent-rainbow
         vscode-icons-team.vscode-icons
+
         # Vim extension (optional, for vim keybindings)
         vscodevim.vim
         wix.vscode-import-cost
@@ -461,7 +469,7 @@ let
       shellAliases = {
         hm = "home-manager";
         pkg = "pkg_list";
-        update = "sudo nala update && sudo nala upgrade && flatpak update -y";
+        update = "sudo apt update && sudo apt upgrade && flatpak update -y";
       };
 
       # History settings
@@ -474,7 +482,7 @@ let
         extended = true;
       };
 
-      initExtra = ''
+      initContent = ''
         # Initialize zoxide
         eval "$(zoxide init zsh)"
 
@@ -835,6 +843,7 @@ in {
   };
 
   # Programs
+  # programs = {
   programs = programConfigs // {
     home-manager.enable = true;
     direnv.enable = true;

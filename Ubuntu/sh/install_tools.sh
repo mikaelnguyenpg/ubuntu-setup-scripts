@@ -38,7 +38,8 @@ is_snap_installed() { snap list "$1" >/dev/null 2>&1; }
 update_system() {
     log "Updating and upgrading system"
     if command_exists nala; then
-        sudo nala update && sudo nala upgrade -y
+        # sudo nala update && sudo nala upgrade -y
+        log "nala NOT ready"
     else
         sudo apt update && sudo apt upgrade -y
     fi
@@ -62,7 +63,7 @@ install_apt_packages() {
             log "$pkg is already installed"
         else
             log "Installing $pkg"
-            sudo nala install -y "$pkg"
+            sudo apt install -y "$pkg"
         fi
     done
 }
@@ -73,7 +74,7 @@ install_flatpak() {
         log "flatpak is already installed"
     else
         log "Installing flatpak"
-        sudo nala install -y flatpak
+        sudo apt install -y flatpak
         flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
 
@@ -93,7 +94,7 @@ install_snap() {
         log "snap is already installed"
     else
         log "Installing snap"
-        sudo nala install -y snapd
+        sudo apt install -y snapd
     fi
 
     for app in $SNAP_APPS; do
@@ -112,7 +113,7 @@ install_timeshift() {
         log "timeshift is already installed"
     else
         log "Installing timeshift"
-        sudo nala install -y timeshift
+        sudo apt install -y timeshift
     fi
 
     if command_exists timeshift && timeshift --list | grep -q "0 snapshots"; then
@@ -129,7 +130,7 @@ install_ansible() {
         log "ansible is already installed"
     else
         log "Installing ansible"
-        sudo nala install -y ansible
+        sudo apt install -y ansible
     fi
 }
 
