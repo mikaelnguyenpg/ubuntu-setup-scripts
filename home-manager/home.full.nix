@@ -39,7 +39,7 @@ let
       httpie
       jq
       lsd
-      # neofetch
+      neofetch
       # nodePackages.emoj
       ripgrep
       # spice-vdagent # samba # Windows: https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
@@ -77,6 +77,14 @@ let
       yarn
       # Python
       uv
+      # Markdown
+      marksman
+      # Flutter
+      # flutter
+      # dart
+      # jdk17
+      clang
+      cmake
     ];
     nixGLTools = [
       (config.lib.nixGL.wrap ghostty)
@@ -167,6 +175,29 @@ let
             args = [ ];
             config.check.command = "clippy";
           };
+          # ── Python ─────────────────────────────────────────────────────
+          pyright = {
+            command = "pyright-langserver";
+            args = [ "--stdio" ];
+          };
+          ruff-lsp = {
+            command = "ruff-lsp";
+            args = [ ];
+          };
+          # # optional: debugpy (DAP)
+          # debugpy = {
+          #   command = "${pkgs.python3Packages.debugpy}/bin/python";
+          #   args = [ "-m" "debugpy.adapter" ];
+          # };
+          # ── Flutter/Dart ───────────────────────────────────────────────
+          dart-language-server = {
+            command = "dart";
+            args = [ "language-server" "--protocol=lsp" ];
+          };
+          dart-debug-adapter = {
+            command = "dart";
+            args = [ "debug_adapter" ];
+          };
         };
 
         language = [
@@ -248,6 +279,95 @@ let
             formatter = { command = "prettier"; args = [ "--parser" "markdown" ]; };
             auto-format = true;
           }
+          # ── Python ─────────────────────────────────────────────────────
+          {
+            name = "python";
+            scope = "source.python";
+            injection-regex = "python";
+            file-types = [ "py" "pyi" "py3" "pyw" "ptl" ];
+            roots = [ "pyproject.toml" "setup.py" "requirements.txt" ".git" ];
+
+            # Formatter (ruff is the fastest; replace with black if you want)
+            formatter = {
+              command = "ruff";
+              args = [ "format" "--quiet" "-" ];
+            };
+
+            # LSPs
+            language-servers = [ "pyright" "ruff-lsp" ];
+
+            # Auto-format on save
+            auto-format = true;
+
+            # Debugger (optional but handy)
+            debugger = {
+              name = "debugpy";
+              transport = "stdio";
+              args = [ "-m" "debugpy.adapter" ];
+              command = "python";
+              # command = ".venv/bin/python";
+              templates = [
+                {
+                  name = "Run file";
+                  request = "launch";
+                  completion = [{ name = "entrypoint"; completion = "filename"; default = "."; }];
+                  args = {
+                    mode = "debug";
+                    program = "\${file}";
+                    console = "integratedTerminal";
+                    justMyCode = true;
+                  };
+                }
+              ];
+            };
+          }
+          # ── Flutter/Dart ───────────────────────────────────────────────
+          {
+            name = "dart";
+            scope = "source.dart";
+            injection-regex = "dart";
+            file-types = [ "dart" "flutter" ];
+            roots = [ "pubspec.yaml" ".git" ];
+
+            # Formatter (official Dart formatter)
+            formatter = {
+              command = "dart";
+              args = [ "format" ];
+            };
+
+            # LSP
+            language-servers = [ "dart-language-server" ];
+
+            # Auto-format on save
+            auto-format = true;
+
+            # Debugger (for Flutter hot reload/debugging)
+            debugger = {
+              name = "dart-debug-adapter";
+              transport = "stdio";
+              command = "dart";
+              args = [ "debug_adapter" ];
+              templates = [
+                {
+                  name = "Launch Dart/Flutter";
+                  request = "launch";
+                  completion = [
+                    { name = "program"; completion = "filename"; default = "lib/main.dart"; }
+                  ];
+                  args = {
+                    program = "\${file}";
+                    cwd = "\${workspaceFolder}";
+                    console = "integratedTerminal";
+                    args = [ ];
+                    env = { };
+                    # Flutter-specific: enable hot reload
+                    dart.debugExternalPackageLibraries = true;
+                    dart.debugSdkLibraries = false;
+                  };
+                }
+              ];
+            };
+          }
         ];
       };
     };
@@ -284,11 +404,11 @@ let
           set -g @resurrect-strategy-nvim 'session'
           set -g @resurrect-capture-pane-contents 'on'
         ''; }
-        # { plugin = tmuxPlugins.continuum; extraConfig = ''
-        #   set -g @continuum-restore 'on'
-        #   set -g @continuum-boot 'off'
-        #   set -g @continuum-save-interval '10'
-        # ''; }
+        { plugin = tmuxPlugins.continuum; extraConfig = ''
+          set -g @continuum-restore 'on'
+          set -g @continuum-boot 'off'
+          set -g @continuum-save-interval '10'
+        ''; }
       ];
       extraConfig = ''
         # Terminal settings for Ghostty
@@ -392,6 +512,12 @@ let
         "turboConsoleLog.includeLineNum" = true;
         "turboConsoleLog.insertEnclosingClass" = true;
         "turboConsoleLog.insertEnclosingFunction" = true;
+
+        # Flutter
+        "dart.flutterSdkPath" = "~/flutter";
+        ## Android iOS Emulator
+        "emulator.emulatorPathLinux" = "~/Android/Sdk/emulator";
+        # "emulator.emulatorPathMac" = "~/Library/Android/sdk/emulator";
       };
 
       # Manage keybindings
@@ -495,6 +621,18 @@ let
 
         # Basic prompt (replace with Starship if enabled)
         PROMPT='%F{blue}%n@%m%f %F{green}%~%f $ '
+
+        # Chrome
+        export CHROME_EXECUTABLE="~/.local/share/flatpak/app/com.google.Chrome/current/active/export/bin/com.google.Chrome"
+
+        # FLutter
+        export ANDROID_HOME=$HOME/Android/Sdk
+        export PATH="$PATH:$HOME/flutter/bin"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin/"
+        export PATH=$PATH:$ANDROID_HOME/emulator
+        export PATH=$PATH:$ANDROID_HOME/tools
+        export PATH=$PATH:$ANDROID_HOME/platform-tools
+        export ANDROID_AVD_HOME="$HOME/.var/app/com.google.AndroidStudio/config/.android/avd/"
       '';
     };
 

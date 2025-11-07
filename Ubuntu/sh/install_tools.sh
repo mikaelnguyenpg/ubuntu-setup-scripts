@@ -5,6 +5,7 @@
 # Usage: ./install-tools.sh [install|remove]
 # check session type: `echo $XDG_SESSION_TYPE` # Wayland, X11
 # install x11 session: `x11-apps`
+# Ref: https://youtu.be/vLm2EHIaxOo?si=fn4AO2H4MCXV6rTK&t=552
 
 set -e
 
@@ -13,10 +14,13 @@ NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
 CONFIG_DIR="$HOME/.config"
 HM_DIR="$CONFIG_DIR/home-manager"
 SAMPLE_DIR="$(dirname "$0")/../../home-manager"
-APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg"
+APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg openjdk-17-jdk ninja-build libgtk-3-dev"
 QEMU_PKGS="qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
 SNAP_APPS=""
 FLATPAK_APPS=""
+PM=${PM:-apt}
+[[ $PM == nala ]] && command -v nala >/dev/null && PM_CMD=nala || PM_CMD=apt
+pm() { sudo $PM_CMD "$@"; }
 
 # Logging
 log() { printf "[INFO] %s\n" "$1"; }
@@ -41,7 +45,7 @@ update_system() {
         # sudo nala update && sudo nala upgrade -y
         log "nala NOT ready"
     else
-        sudo apt update && sudo apt upgrade -y
+        pm update && pm upgrade -y
     fi
 }
 
@@ -63,9 +67,17 @@ install_apt_packages() {
             log "$pkg is already installed"
         else
             log "Installing $pkg"
-            sudo apt install -y "$pkg"
+            pm install -y "$pkg"
         fi
     done
+}
+
+# Install Nvidia-drivers
+install_nvidia_drivers() {
+    lspci | grep -E "VGA|3D"
+    ubuntu-drivers devices
+    pm install -y nvidia-driver-580 # 1st way
+    # sudo ubuntu-drivers autoinstall # 2nd way
 }
 
 # Install flatpak and apps
@@ -74,7 +86,7 @@ install_flatpak() {
         log "flatpak is already installed"
     else
         log "Installing flatpak"
-        sudo apt install -y flatpak
+        pm install -y flatpak
         flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
 
@@ -94,7 +106,7 @@ install_snap() {
         log "snap is already installed"
     else
         log "Installing snap"
-        sudo apt install -y snapd
+        pm install -y snapd
     fi
 
     for app in $SNAP_APPS; do
@@ -113,7 +125,7 @@ install_timeshift() {
         log "timeshift is already installed"
     else
         log "Installing timeshift"
-        sudo apt install -y timeshift
+        pm install -y timeshift
     fi
 
     if command_exists timeshift && timeshift --list | grep -q "0 snapshots"; then
@@ -130,7 +142,7 @@ install_ansible() {
         log "ansible is already installed"
     else
         log "Installing ansible"
-        sudo apt install -y ansible
+        pm install -y ansible
     fi
 }
 
@@ -281,6 +293,7 @@ install_all() {
     install_home_manager
     apply_home_manager
     install_apt_packages "$QEMU_PKGS"
+    install_nvidia_drivers
 }
 
 # Main logic
