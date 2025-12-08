@@ -5,14 +5,6 @@
 
 alias cl=clear
 
-# Navigation aliases
-alias cd="z"
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias .....="cd ../../../.."
-alias ......="cd ../../../../.."
-
 # Eza (modern ls replacement)
 alias ls="eza --icons"
 alias la="eza --icons -a"
@@ -20,6 +12,14 @@ alias ll="eza -l --icons --git"
 alias lla="eza -l --icons --git -a"
 alias lt="eza --tree --level=1 --icons --git -I node_modules"
 alias ltl="lt --long"
+
+# Navigation aliases
+alias cd="z"
+alias ..="cd .. && eza --icons"
+alias ...="cd ../.. && eza --icons"
+alias ....="cd ../../.. && eza --icons"
+alias .....="cd ../../../.. && eza --icons"
+alias ......="cd ../../../../.. && eza --icons"
 
 # alias ls="lsd"
 # alias ll='ls -l'

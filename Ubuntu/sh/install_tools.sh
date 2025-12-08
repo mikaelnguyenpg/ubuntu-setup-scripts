@@ -14,8 +14,9 @@ NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
 CONFIG_DIR="$HOME/.config"
 HM_DIR="$CONFIG_DIR/home-manager"
 SAMPLE_DIR="$(dirname "$0")/../../home-manager"
-APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg openjdk-17-jdk ninja-build libgtk-3-dev"
+APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg"
 QEMU_PKGS="qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
+FLUTTER_PKGS="ninja-build pkg-config libgtk-3-dev libstdc++-12-dev" # clang cmake 
 SNAP_APPS=""
 FLATPAK_APPS=""
 PM=${PM:-apt}
@@ -293,6 +294,7 @@ install_all() {
     install_home_manager
     apply_home_manager
     install_apt_packages "$QEMU_PKGS"
+    install_apt_packages "$FLUTTER_PKGS"
     install_nvidia_drivers
 }
 

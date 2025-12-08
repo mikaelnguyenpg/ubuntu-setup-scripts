@@ -48,6 +48,7 @@ let
     ];
     office = [
       flameshot
+      # yt-dlp
     ];
     media = [
       cava
@@ -77,6 +78,7 @@ let
       yarn
       # Python
       uv
+      # DL
       # Markdown
       marksman
       # Flutter
@@ -105,7 +107,7 @@ let
     { appId = "com.google.Chrome"; origin = "flathub"; }
     { appId = "org.signal.Signal"; origin = "flathub"; }
     { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
-    # { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
+    { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
     { appId = "io.httpie.Httpie"; origin = "flathub"; }
     { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
     { appId = "com.obsproject.Studio"; origin = "flathub"; }
@@ -303,9 +305,8 @@ let
             debugger = {
               name = "debugpy";
               transport = "stdio";
-              args = [ "-m" "debugpy.adapter" ];
               command = "python";
-              # command = ".venv/bin/python";
+              args = [ "-m" "debugpy.adapter" ];
               templates = [
                 {
                   name = "Run file";
@@ -355,14 +356,9 @@ let
                     { name = "program"; completion = "filename"; default = "lib/main.dart"; }
                   ];
                   args = {
-                    program = "\${file}";
                     cwd = "\${workspaceFolder}";
+                    program = "\${file}";
                     console = "integratedTerminal";
-                    args = [ ];
-                    env = { };
-                    # Flutter-specific: enable hot reload
-                    dart.debugExternalPackageLibraries = true;
-                    dart.debugSdkLibraries = false;
                   };
                 }
               ];
@@ -404,11 +400,11 @@ let
           set -g @resurrect-strategy-nvim 'session'
           set -g @resurrect-capture-pane-contents 'on'
         ''; }
-        { plugin = tmuxPlugins.continuum; extraConfig = ''
-          set -g @continuum-restore 'on'
-          set -g @continuum-boot 'off'
-          set -g @continuum-save-interval '10'
-        ''; }
+        # { plugin = tmuxPlugins.continuum; extraConfig = ''
+        #   set -g @continuum-restore 'on'
+        #   set -g @continuum-boot 'off'
+        #   set -g @continuum-save-interval '10'
+        # ''; }
       ];
       extraConfig = ''
         # Terminal settings for Ghostty
@@ -629,6 +625,7 @@ let
         export ANDROID_HOME=$HOME/Android/Sdk
         export PATH="$PATH:$HOME/flutter/bin"
         export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin/"
+        export PATH="$PATH:$ANDROID_HOME/platform-tools/"
         export PATH=$PATH:$ANDROID_HOME/emulator
         export PATH=$PATH:$ANDROID_HOME/tools
         export PATH=$PATH:$ANDROID_HOME/platform-tools
@@ -998,6 +995,6 @@ in {
     vim.enable = true;
     neovim.enable = true;
     cmus.enable = true;
-    yt-dlp.enable = true;
+    # yt-dlp.enable = true;
   };
 }
