@@ -16,7 +16,7 @@ HM_DIR="$CONFIG_DIR/home-manager"
 SAMPLE_DIR="$(dirname "$0")/../../home-manager"
 APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg"
 QEMU_PKGS="qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
-FLUTTER_PKGS="ninja-build pkg-config libgtk-3-dev libstdc++-12-dev" # clang cmake 
+FLUTTER_PKGS="ninja-build pkg-config libgtk-3-dev libstdc++-12-dev libopencv-dev" # clang cmake 
 SNAP_APPS=""
 FLATPAK_APPS=""
 PM=${PM:-apt}
@@ -220,27 +220,28 @@ install_home_manager() {
         nix run home-manager -- init || error "home-manager initialization failed"
     fi
 
-    # Copy configuration files
-    local configs=(
-        "home-manager/home.full.nix:$HM_DIR/home.nix"
-        "home-manager/flake.nix:$HM_DIR/flake.nix"
-        "zsh/functions.zsh:$CONFIG_DIR/zsh/functions.zsh"
-        "zsh/aliases.zsh:$CONFIG_DIR/zsh/aliases.zsh"
-        "helix/config.toml:$CONFIG_DIR/helix/config.toml"
-        "ghostty/config:$CONFIG_DIR/ghostty/config"
-        "zellij/config.kdl:$CONFIG_DIR/zellij/config.kdl"
-    )
-    for config in "${configs[@]}"; do
-        local src="${config%%:*}" dest="${config##*:}"
-        src="../../$src"
-        mkdir -p "$(dirname "$dest")"
-        if [ -f "$src" ]; then
-            log "Copying $(basename "$src") to $(dirname "$dest")"
-            cp "$src" "$dest"
-        else
-            log "$(basename "$src") not found at $src"
-        fi
-    done
+    log "Syncing home-manager configuration..."
+    # -a: giữ nguyên thuộc tính, -v: hiển thị, -T: coi dest là thư mục
+    cp -rv "../../home-manager" "$HM_DIR/"
+    cp "../../ghostty/config" "$CONFIG_DIR/ghostty/config"
+
+    # # Copy configuration files
+    # local configs=(
+    #     "home-manager/home.full.nix:$HM_DIR/home.nix"
+    #     "home-manager/flake.nix:$HM_DIR/flake.nix"
+    #     "ghostty/config:$CONFIG_DIR/ghostty/config"
+    # )
+    # for config in "${configs[@]}"; do
+    #     local src="${config%%:*}" dest="${config##*:}"
+    #     src="../../$src"
+    #     mkdir -p "$(dirname "$dest")"
+    #     if [ -f "$src" ]; then
+    #         log "Copying $(basename "$src") to $(dirname "$dest")"
+    #         cp "$src" "$dest"
+    #     else
+    #         log "$(basename "$src") not found at $src"
+    #     fi
+    # done
 }
 
 # Apply home-manager
