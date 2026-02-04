@@ -282,17 +282,20 @@ in {
   # =============================================================================
   programs = {
     home-manager.enable = true;
-    direnv.enable = true;
+    direnv = {
+      enable            = true; # tự động nạp env params
+      nix-direnv.enable = true; # tự động nạp env
+    };
 
-    cmus.enable = true;
+    cmus.enable    = true;
 
-    git.enable = true; # version control
+    git.enable     = true; # version control
     lazygit.enable = true;
-    lf.enable = true;
-    neovim.enable = true;
+    lf.enable      = true;
+    neovim.enable  = true;
     ripgrep.enable = true; # grep nhanh hơn
-    vim.enable = true;
-    yazi.enable = true;
+    vim.enable     = true;
+    yazi.enable    = true;
     # yt-dlp.enable = true;
   };
 }
