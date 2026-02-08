@@ -23,6 +23,7 @@ let
       lsd            # ls đẹp hơn
       xclip          # clipboard CLI
       # Cài nerdfont
+      nerd-fonts.jetbrains-mono
       nerd-fonts.fira-code
       nerd-fonts.comic-shanns-mono
       nerd-fonts.symbols-only # (Tùy chọn) Thêm các symbol bổ trợ
@@ -50,9 +51,9 @@ let
       fortune
       boxes
       neofetch
-      # btop
+      btop
       gotop
-      # gtop
+      gtop
     ];
 
     # ────────────────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ let
     # 7. NixGL wrapped apps (cần chạy GUI với nixGL)
     # ────────────────────────────────────────────────────────────────
     nixGLApps = [
-      (config.lib.nixGL.wrap ghostty)
+      # (config.lib.nixGL.wrap ghostty)
       (config.lib.nixGL.wrap neovide)
       # (config.lib.nixGL.wrap notepadqq)
       # (config.lib.nixGL.wrap jetbrains.webstorm)
@@ -192,7 +193,7 @@ in {
     ./programs/eza.nix
     ./programs/fzf.nix
     ./programs/git.nix
-    # ./programs/ghostty.nix
+    ./programs/ghostty.nix
     ./programs/helix.nix
     ./programs/starship.nix
     ./programs/tmux.nix
@@ -307,10 +308,6 @@ in {
 
     cmus.enable    = true;
 
-    # git.enable     = true; # version control
-    # git.settings.user.name = "mikaelnguyenpg";
-    # git.settings.user.email = "mikaelnguyenpg@gmail.com";
-    # ghostty.enable = true;
     lazygit.enable = true;
     lf.enable      = true;
     neovim.enable  = true;

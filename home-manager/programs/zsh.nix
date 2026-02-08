@@ -4,7 +4,6 @@
   programs.zsh = {
     enable                    = true;
     dotDir                    = config.home.homeDirectory;
-    # dotDir                  = "${config.xdg.configHome}/zsh";
     enableCompletion          = true;
     autosuggestion.enable     = true;
     syntaxHighlighting.enable = true;
@@ -23,44 +22,44 @@
 
     # 2. Shell aliases (minimal, most in aliases.zsh)
     shellAliases = {
+      # --- Nix & Home Manager ---
       hm     = "home-manager";
       hms    = "home-manager switch --show-trace --impure";
       hmsf   = "home-manager switch --show-trace --impure --flake .";
       hmsb   = "home-manager switch -b backup --show-trace --impure";
-      update = "sudo apt update && sudo apt upgrade && flatpak update -y";
       pkg    = "pkg_list";
 
-      # General
-      cl  = "clear";
-      ls  = "eza --icons";
-      la  = "eza -a --icons";
-      ll  = "eza -l --icons --git";
-      lla = "eza -la --icons --git";
-      # Tree view: Level 2 is usually more useful than Level 1
-      lt  = "eza --tree --level=2 --icons --git -I 'node_modules|.git'";
+      # --- System Maintenance ---
+      update = "sudo apt update && sudo apt upgrade && flatpak update -y";
+      cl     = "clear";
 
-      # Pro Navigation: Instead of ... use a smart "Up" command
-      # This allows: 'up 3' to go up 3 levels
-      up = "cd .."; 
+      # --- Modern Core Utils (eza & fd) ---
+      ls     = "eza --icons";
+      la     = "eza -a --icons";
+      ll     = "eza -l --icons --git";
+      lla    = "eza -la --icons --git";
+      lt     = "eza --tree --level=2 --icons --git -I 'node_modules|.git'";
+      up     = "cd ..";
 
-      # Advanced
-      ldo = "lazydocker";
-      lg  = "lazygit";
-      yz  = "yazi";
-      zj  = "zellij";
-      # Tìm file bằng fd và mở ngay bằng helix
-      hf  = "hx $(fd --type f | fzf --preview 'bat --color=always {}')";
+      # --- TUI Tools & Terminal Productivity ---
+      lzd    = "lazydocker";
+      lzg    = "lazygit";
+      mx     = "cmatrix";
+      yz     = "yazi";
+      zj     = "zellij";
 
-      # Docker: Tắt sạch mọi thứ
-      docker-stop         = "docker stop $(docker ps -q)";
-      # Docker: Xóa sạch mọi container đã tắt
-      docker-remove       = "docker rm $(docker ps -aq)";
-      # Dọn rác build, giữ lại Image Mac và dữ liệu
-      dk-tidy             = "docker system prune -f";
-      # Xóa SẠCH SẼ (Mất sạch máy ảo Mac và dữ liệu) - CẨN THẬN!
-      dk-nuclear          = "docker system prune -a --volumes -f";
-      # Docker: Xóa sạch toàn bộ Image (Dùng khi muốn cài lại từ đầu)
-      docker-remove-image = "docker rmi -f $(docker images -q)";
+      # --- Interactive Search & Edit ---
+      # Tìm file nhanh và mở bằng Helix (với preview từ bat)
+      hf     = "hx $(fd --type f | fzf --preview 'bat --color=always {}')";
+
+      # --- Docker Management (The "Safe" Zone) ---
+      dk-stop   = "docker stop $(docker ps -q)";
+      dk-rm     = "docker rm $(docker ps -aq)";
+      dk-tidy   = "docker system prune -f";
+
+      # --- Docker Management (The "Danger" Zone) ---
+      dk-rmi     = "docker rmi -f $(docker images -q)";
+      dk-nuclear = "docker system prune -a --volumes -f";
     };
 
     # 3. Cấu hình History
