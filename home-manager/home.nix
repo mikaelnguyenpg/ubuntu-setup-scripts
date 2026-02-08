@@ -22,23 +22,29 @@ let
       tldr           # hướng dẫn lệnh ngắn gọn
       lsd            # ls đẹp hơn
       xclip          # clipboard CLI
-      # Cài nerdfont
+    ];
+
+    nerdFonts = [
       nerd-fonts.jetbrains-mono
       nerd-fonts.fira-code
       nerd-fonts.comic-shanns-mono
       nerd-fonts.symbols-only # (Tùy chọn) Thêm các symbol bổ trợ
     ];
 
-    docker = [
+    dockerTools = [
       docker-compose # Bản plugin hỗ trợ docker tốt hơn
       docker-slim    # Giúp bạn soi và tối ưu các Image build ra
       lazydocker     # Giao diện TUI quản lý container
     ];
 
-    qemu = [
+    qemuTools = [
       qemu        # Phiên bản QEMU mới nhất từ Nix
       quickemu    # Tool cực hay để tạo nhanh máy ảo Linux/Windows/macOS
       virt-viewer # Để xem màn hình máy ảo
+      # IMPORTANT: MÁY ẢO cần cài thêm
+      # `sudo apt install spice-vdagent`
+      # `sudo systemctl restart spice-vdagent`
+      # Hoặc download `spice-guest-tools-latest.exe` từ `https://www.spice-space.org/download/binaries/spice-guest-tools/`
     ];
 
     # ────────────────────────────────────────────────────────────────
@@ -131,8 +137,9 @@ let
     # Tổng hợp tất cả (dễ comment/uncomment từng nhóm)
     # ────────────────────────────────────────────────────────────────
     all = coreCli
-      ++ docker
-      # ++ qemu
+      ++ nerdFonts
+      ++ dockerTools
+      ++ qemuTools
       ++ funTerminal
       ++ editors
       ++ dev
@@ -198,6 +205,7 @@ in {
     ./programs/starship.nix
     ./programs/tmux.nix
     ./programs/vscode.nix
+    ./programs/ytdlp.nix
     ./programs/zoxide.nix
     ./programs/zsh.nix
     ./programs/zellij.nix
