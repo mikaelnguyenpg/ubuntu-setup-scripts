@@ -3,6 +3,8 @@
 {
   programs.zsh = {
     enable                    = true;
+    dotDir                    = config.home.homeDirectory;
+    # dotDir                  = "${config.xdg.configHome}/zsh";
     enableCompletion          = true;
     autosuggestion.enable     = true;
     syntaxHighlighting.enable = true;
@@ -42,11 +44,23 @@
       up = "cd .."; 
 
       # Advanced
-      lg = "lazygit";
-      yz = "yazi";
-      zj = "zellij";
+      ldo = "lazydocker";
+      lg  = "lazygit";
+      yz  = "yazi";
+      zj  = "zellij";
       # Tìm file bằng fd và mở ngay bằng helix
-      hf = "hx $(fd --type f | fzf --preview 'bat --color=always {}')";
+      hf  = "hx $(fd --type f | fzf --preview 'bat --color=always {}')";
+
+      # Docker: Tắt sạch mọi thứ
+      docker-stop         = "docker stop $(docker ps -q)";
+      # Docker: Xóa sạch mọi container đã tắt
+      docker-remove       = "docker rm $(docker ps -aq)";
+      # Dọn rác build, giữ lại Image Mac và dữ liệu
+      dk-tidy             = "docker system prune -f";
+      # Xóa SẠCH SẼ (Mất sạch máy ảo Mac và dữ liệu) - CẨN THẬN!
+      dk-nuclear          = "docker system prune -a --volumes -f";
+      # Docker: Xóa sạch toàn bộ Image (Dùng khi muốn cài lại từ đầu)
+      docker-remove-image = "docker rmi -f $(docker images -q)";
     };
 
     # 3. Cấu hình History

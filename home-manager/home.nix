@@ -16,16 +16,28 @@ let
     # 1. Core CLI & productivity tools (luôn dùng hàng ngày)
     # ────────────────────────────────────────────────────────────────
     coreCli = [
-      delta        # diff đẹp hơn
-      jq           # xử lý JSON
-      httpie       # curl thân thiện
-      tldr         # hướng dẫn lệnh ngắn gọn
-      lsd          # ls đẹp hơn
-      xclip        # clipboard CLI
+      delta          # diff đẹp hơn
+      jq             # xử lý JSON
+      httpie         # curl thân thiện
+      tldr           # hướng dẫn lệnh ngắn gọn
+      lsd            # ls đẹp hơn
+      xclip          # clipboard CLI
       # Cài nerdfont
       nerd-fonts.fira-code
       nerd-fonts.comic-shanns-mono
       nerd-fonts.symbols-only # (Tùy chọn) Thêm các symbol bổ trợ
+    ];
+
+    docker = [
+      docker-compose # Bản plugin hỗ trợ docker tốt hơn
+      docker-slim    # Giúp bạn soi và tối ưu các Image build ra
+      lazydocker     # Giao diện TUI quản lý container
+    ];
+
+    qemu = [
+      qemu        # Phiên bản QEMU mới nhất từ Nix
+      quickemu    # Tool cực hay để tạo nhanh máy ảo Linux/Windows/macOS
+      virt-viewer # Để xem màn hình máy ảo
     ];
 
     # ────────────────────────────────────────────────────────────────
@@ -47,7 +59,6 @@ let
     # 3. Editors / IDEs / code editors
     # ────────────────────────────────────────────────────────────────
     editors = [
-      helix
       jetbrains.webstorm
     ];
 
@@ -70,6 +81,7 @@ let
 
       # Rust
       rustup
+      wasm-pack
 
       # C/C++
       clang
@@ -118,12 +130,14 @@ let
     # Tổng hợp tất cả (dễ comment/uncomment từng nhóm)
     # ────────────────────────────────────────────────────────────────
     all = coreCli
-       ++ funTerminal
-       ++ editors
-       ++ dev
-       ++ media
-       ++ officeUtils
-       ++ nixGLApps;
+      ++ docker
+      # ++ qemu
+      ++ funTerminal
+      ++ editors
+      ++ dev
+      ++ media
+      ++ officeUtils
+      ++ nixGLApps;
   };
 
   # ---------------------------------------------------------------------------
@@ -177,6 +191,8 @@ in {
   imports = [
     ./programs/eza.nix
     ./programs/fzf.nix
+    ./programs/git.nix
+    # ./programs/ghostty.nix
     ./programs/helix.nix
     ./programs/starship.nix
     ./programs/tmux.nix
@@ -190,7 +206,9 @@ in {
   # =============================================================================
   #                            GRAPHICS & DRIVERS
   # =============================================================================
-  nixGL = {
+  targets.genericLinux.enable = true;
+  targets.genericLinux.nixGL = {
+  # nixGL = {
     packages = nixGL.packages; # Import nixGL package set
     defaultWrapper = "mesa"; # Use Mesa for Intel/AMD or Nouveau
     installScripts = ["mesa"]; # Install nixGLMesa script
@@ -225,7 +243,7 @@ in {
     ANDROID_AVD_HOME = "$HOME/.var/app/com.google.AndroidStudio/config/.android/avd/";
 
     # Nix profile (giữ nguyên)
-    XDG_DATA_DIRS = "$HOME/.nix-profile/share:$XDG_DATA_DIRS";
+    # XDG_DATA_DIRS = "$HOME/.nix-profile/share:$XDG_DATA_DIRS";
   };
 
   # =============================================================================
@@ -289,7 +307,10 @@ in {
 
     cmus.enable    = true;
 
-    git.enable     = true; # version control
+    # git.enable     = true; # version control
+    # git.settings.user.name = "mikaelnguyenpg";
+    # git.settings.user.email = "mikaelnguyenpg@gmail.com";
+    # ghostty.enable = true;
     lazygit.enable = true;
     lf.enable      = true;
     neovim.enable  = true;
@@ -298,4 +319,19 @@ in {
     yazi.enable    = true;
     # yt-dlp.enable = true;
   };
+
+  # Tùy biến lại file desktop để sửa lỗi Dashboard
+  # xdg.desktopEntries."com.mitchellh.ghostty" = {
+  #   name = "Ghostty";
+  #   genericName = "Terminal Emulator";
+  #   # Sử dụng đường dẫn symlink ổn định
+  #   exec = "/home/eagle/.nix-profile/bin/ghostty --gtk-single-instance=true";
+  #   icon = "com.mitchellh.ghostty";
+  #   terminal = false;
+  #   categories = [ "System" "TerminalEmulator" ];
+  #   # QUAN TRỌNG: Vô hiệu hóa D-Bus Activation
+  #   settings = {
+  #     DBusActivatable = "false";
+  #   };
+  # };
 }

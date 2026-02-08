@@ -286,6 +286,7 @@
         language-server.pyright = {
           command = "pyright-langserver";
           args = [ "--stdio" ];
+          config.python.pythonPath = ".venv/bin/python";
         };
         language-server.ruff-lsp = {
           command = "ruff-lsp";

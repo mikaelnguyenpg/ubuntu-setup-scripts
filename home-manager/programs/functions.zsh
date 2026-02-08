@@ -377,23 +377,6 @@ pkg_remove() {
   echo $(_red "Package '$1' not found in any manager")
 }
 
-# --- Utilities ---
-# Change directory and list
-# cx() { cd "$@" && lsa; }
-
-# Fuzzy find directory and change
-# fcd() { cd "$(find . -type d -not -path '*/.*' | fzf)" && l; }
-
-# Fuzzy find file and copy path to clipboard
-# ff() { echo "$(find . -type f -not -path '*/.*' | fzf)" | xclip -selection clipboard; }
-
-# Fuzzy find file and open in nvim
-# fv() { nvim "$(find . -type f -not -path '*/.*' | fzf)"; }
-# Fuzzy find file and open in helix
-# fh() { hx "$(find . -type f -not -path '*/.*' | fzf)"; }
-# Fuzzy find file and open in bat
-# fb() { bat "$(find . -type f -not -path '*/.*' | fzf)"; }
-
 # --- Nix functions ---
 # nneovide() { nixGL neovide "$@" > /dev/null 2>&1 &; }
 # nghostty() { nixGL ghostty "$@" > /dev/null 2>&1 &; }
@@ -435,4 +418,91 @@ zja() {
 # Tự động ls mỗi khi thay đổi thư mục
 chpwd() {
   eza --icons --group-directories-first
+}
+
+# Function giúp khởi động macOS Docker
+#     docker run -it \
+#       --name "$container_name" \
+#       --device /dev/kvm \
+#       -p 50922:10022 \
+#       -v /tmp/.X11-unix:/tmp/.X11-unix \
+#       -e "DISPLAY=${DISPLAY:-:0.0}" \
+#       -e GENERATE_UNIQUE=true \
+#       -e CPU='Haswell-noTSX' \
+#       -e CPUID_FLAGS='kvm=on,vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on' \
+#       -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom-sonoma.plist' \
+#       -e SHORTNAME=sequoia \
+#       --device /dev/input/platform-i8042-serio-0-event-kbd \
+#       -e EXTRA="-object input-linux,id=kbd1,evdev=/dev/input/eventX,grab_all=on,repeat=on"
+#       sickcodes/docker-osx:latest
+docker-create-mac() {
+  local container_name="macos-sequoia"
+  
+  # Kiểm tra nếu đã tồn tại thì không tạo đè
+  if [ "$(docker ps -aq -f name=^/${container_name}$)" ]; then
+    echo "⚠️  Container '$container_name' đã tồn tại. Dùng 'docker-mac' để bật."
+    return 1
+  fi
+
+  echo "✨ Đang khởi tạo máy Mac mới (Lần đầu cài đặt)..."
+  echo "⌨️  Đang dò tìm bàn phím Asus TUF..."
+  
+  local KBD_PATH="/dev/input/by-path/platform-i8042-serio-0-event-kbd"
+  local KBD_DEV=$(readlink -f "$KBD_PATH" 2>/dev/null)
+  local EXTRA_CONFIG="-device qemu-xhci,id=usbcontroller -device usb-kbd,bus=usbcontroller.0"
+  local DEV_ARG=""
+
+  if [ -n "$KBD_DEV" ]; then
+    echo "✅ Đã thấy bàn phím tại: $KBD_DEV"
+    DEV_ARG="--device $KBD_DEV:$KBD_DEV"
+    EXTRA_CONFIG+=",id=kbd1,evdev=$KBD_DEV,grab_all=on,repeat=on -object input-linux,id=kbd1,evdev=$KBD_DEV"
+  fi
+
+  # Cấp quyền X11 để hiện màn hình cài đặt
+  xhost +local:docker > /dev/null 2>&1
+
+  docker run -it \
+    --name "$container_name" \
+    --device /dev/kvm \
+    $DEV_ARG \
+    -p 50922:10022 \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e "DISPLAY=${DISPLAY:-:0.0}" \
+    -e GENERATE_UNIQUE=true \
+    -e CPU='Haswell-noTSX' \
+    -e CPUID_FLAGS='kvm=on,vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on' \
+    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom-sonoma.plist' \
+    -e SHORTNAME=sequoia \
+    -e EXTRA="$EXTRA_CONFIG" \
+    sickcodes/docker-osx:latest
+}
+
+docker-mac() {
+    local container_name="macos-sequoia"
+    local mode=$1
+    
+    # Kiểm tra container đã được tạo chưa
+    if [ ! "$(docker ps -aq -f name=^/${container_name}$)" ]; then
+        echo "❌ Chưa có máy ảo. Hãy chạy 'docker-create-mac' trước."
+        return 1
+    fi
+
+    local is_running=$(docker inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)
+
+    if [[ "$is_running" == "true" ]]; then
+        echo "✅ Mac đang chạy rồi. Gõ 'ssh mac' để vào."
+        return
+    fi
+
+    if [[ "$mode" == "-s" || "$mode" == "--ssh" ]]; then
+        echo "☁️  Khởi động NGẦM (SSH mode)..."
+        # Start không có -ai để chạy background
+        docker start "$container_name"
+        echo "👉 Đợi 1-2 phút rồi gõ: ssh MACNAME@localhost -p 50922 # MACNAME is name on Docker-OSX"
+    else
+        echo "🖥️  Khởi động GUI (Full mode)..."
+        xhost +local:docker > /dev/null 2>&1
+        # Start với -ai để hiện màn hình
+        docker start -ai "$container_name"
+    fi
 }

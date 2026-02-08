@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # install-tools.sh
-# Installs and configures tools on Ubuntu 24.04, with Nix/Flakes/Home-Manager focus.
-# Usage: ./install-tools.sh [install|remove|help]
-# Check session type: `echo $XDG_SESSION_TYPE` # Wayland, X11
-# Install x11 session: `x11-apps`
+# Installs and configures tools on Ubuntu 24.04
+# Usage: ./install-tools.sh [install|remove]
+# check session type: `echo $XDG_SESSION_TYPE` # Wayland, X11
+# install x11 session: `x11-apps`
 # Ref: https://youtu.be/vLm2EHIaxOo?si=fn4AO2H4MCXV6rTK&t=552
 
 set -e
@@ -13,97 +13,76 @@ set -e
 NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
 CONFIG_DIR="$HOME/.config"
 HM_DIR="$CONFIG_DIR/home-manager"
-SCRIPT_DIR="$(dirname "$(realpath "$0")")"  # Absolute path to script dir
-HM_FLAKE_DIR="$SCRIPT_DIR/../../home-manager"  # Adjust if needed
+SAMPLE_DIR="$(dirname "$0")/../../home-manager"
 APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ibus-unikey ibus-chewing x11-apps ffmpeg"
+# QEMU_PKGS="qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager ovmf qemu-guest-agent"
 QEMU_PKGS="qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager"
-FLUTTER_PKGS="ninja-build pkg-config libgtk-3-dev libstdc++-12-dev libopencv-dev"  # Included commented ones: clang cmake
+FLUTTER_PKGS="ninja-build pkg-config libgtk-3-dev libstdc++-12-dev libopencv-dev" # clang cmake 
+SNAP_APPS=""
 FLATPAK_APPS=""
+PM=${PM:-apt}
+[[ $PM == nala ]] && command -v nala >/dev/null && PM_CMD=nala || PM_CMD=apt
+pm() { sudo $PM_CMD "$@"; }
 
 # Logging
 log() { printf "[INFO] %s\n" "$1"; }
 error() { printf "[ERROR] %s\n" "$1" >&2; exit 1; }
-section() { printf "\n=== %s ===\n" "$1"; }
 
 # Check if command exists
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
-# Dynamic package manager (prefer nala if available)
-pm() {
-    if command_exists nala; then
-        sudo nala "$@"
-    else
-        sudo apt "$@"
-    fi
-}
-
 # Check if apt package is installed
 is_apt_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"; }
 
-# Check if Flatpak package is installed
-is_flatpak_installed() {
-    local app_id="$1"
-    flatpak list --app --columns=application 2>/dev/null |
-        grep -Fxq "$app_id"
-}
+# Check if flatpak app is installed
+is_flatpak_installed() { flatpak list | grep -q "$1"; }
+
+# Check if snap package is installed
+is_snap_installed() { snap list "$1" >/dev/null 2>&1; }
 
 # Update and upgrade system
 update_system() {
-    section "Updating and Upgrading System"
-    pm update && pm upgrade -y
+    log "Updating and upgrading system"
     if command_exists nala; then
-        sudo nala fetch --auto -y
+        # sudo nala update && sudo nala upgrade -y
+        log "nala NOT ready"
+    else
+        pm update && pm upgrade -y
     fi
 }
 
 # Install nala
 install_nala() {
-    section "Installing Nala (Faster APT Frontend)"
     if command_exists nala; then
         log "nala is already installed"
-        return
+    else
+        log "Installing nala"
+        sudo apt install -y nala && sudo nala fetch --auto -y
     fi
-    log "Installing nala"
-    sudo apt install -y nala
 }
 
-# Install apt packages (batch for speed)
+# Install apt packages
 install_apt_packages() {
-    local pkgs_to_install=""
-    for pkg in $@; do
-        if ! is_apt_installed "$pkg"; then
-            pkgs_to_install="$pkgs_to_install $pkg"
-        else
+    local pkgs="$1"
+    for pkg in $pkgs; do
+        if is_apt_installed "$pkg"; then
             log "$pkg is already installed"
+        else
+            log "Installing $pkg"
+            pm install -y "$pkg"
         fi
     done
-    if [ -n "$pkgs_to_install" ]; then
-        section "Installing APT Packages: $pkgs_to_install"
-        pm install -y $pkgs_to_install
-    else
-        log "All specified APT packages are already installed"
-    fi
 }
 
 # Install Nvidia-drivers
 install_nvidia_drivers() {
-    section "Installing NVIDIA Drivers"
     lspci | grep -E "VGA|3D"
     ubuntu-drivers devices
-    if ! is_apt_installed nvidia-driver; then  # Check for any nvidia-driver
-        log "Auto-installing recommended NVIDIA driver"
-        # pm install -y --install-recommends ubuntu-drivers-common
-        pm install -y nvidia-driver-580
-        sudo ubuntu-drivers install
-    else
-        log "NVIDIA drivers already installed"
-    fi
+    pm install -y nvidia-driver-580 # 1st way
 }
 
 # Install flatpak and apps
 install_flatpak() {
-    section "Installing Flatpak"
-
     if command_exists flatpak; then
         log "flatpak is already installed"
     else
@@ -122,9 +101,27 @@ install_flatpak() {
     done
 }
 
+# Install snap and apps
+install_snap() {
+    if command_exists snap; then
+        log "snap is already installed"
+    else
+        log "Installing snap"
+        pm install -y snapd
+    fi
+
+    for app in $SNAP_APPS; do
+        if is_snap_installed "$app"; then
+            log "$app is already installed"
+        else
+            log "Installing $app"
+            sudo snap install "$app" --classic
+        fi
+    done
+}
+
 # Install Timeshift and create backup
 install_timeshift() {
-    section "Installing Timeshift (System Backup Tool)"
     if is_apt_installed timeshift; then
         log "timeshift is already installed"
     else
@@ -142,7 +139,6 @@ install_timeshift() {
 
 # Install Ansible
 install_ansible() {
-    section "Installing Ansible"
     if command_exists ansible; then
         log "ansible is already installed"
     else
@@ -153,53 +149,55 @@ install_ansible() {
 
 # Install Pritunl Client
 install_pritunl() {
-    section "Installing Pritunl VPN Client"
     if is_apt_installed pritunl-client-electron; then
         log "Pritunl Client is already installed"
         return
     fi
-    log "Adding Pritunl repository"
-    echo "deb https://repo.pritunl.com/stable/apt noble main" | sudo tee /etc/apt/sources.list.d/pritunl.list
+    log "Installing Pritunl Client"
+    sudo tee /etc/apt/sources.list.d/pritunl.list << EOF
+deb https://repo.pritunl.com/stable/apt noble main
+EOF
     sudo apt install -y gnupg
     gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 7568D9BB55FF9E5287D586017AE645C0CF8E292A || error "Failed to fetch Pritunl GPG key"
     gpg --armor --export 7568D9BB55FF9E5287D586017AE645C0CF8E292A | sudo tee /etc/apt/trusted.gpg.d/pritunl.asc
-    pm update
-    pm install -y pritunl-client-electron
+    sudo apt update
+    sudo apt install -y pritunl-client-electron
     log "Pritunl Client installed successfully"
 }
 
 # Remove Pritunl Client
 remove_pritunl() {
-    section "Removing Pritunl VPN Client"
+    log "Removing Pritunl Client"
     sudo pkill -f pritunl || true
     if is_apt_installed pritunl-client-electron; then
-        pm purge -y pritunl-client-electron
-        pm autoremove -y
+        sudo apt purge -y pritunl-client-electron
+        sudo apt autoremove -y
     fi
     sudo rm -f /etc/apt/sources.list.d/pritunl.list /etc/apt/trusted.gpg.d/pritunl.asc
     sudo apt-key del 7568D9BB55FF9E5287D586017AE645C0CF8E292A 2>/dev/null || true
-    pm update
+    sudo apt update
     rm -rf ~/.config/pritunl ~/.pritunl
     if dpkg -l | grep -q pritunl; then
         log "Warning: Pritunl packages may still be installed"
+    fi
+    if find / -name '*pritunl*' 2>/dev/null | grep -q .; then
+        log "Warning: Residual Pritunl files found. Run 'find / -name \"*pritunl*\"' to locate"
     fi
     log "Pritunl Client removed successfully"
 }
 
 # Install Nix
 install_nix() {
-    section "Installing Nix Package Manager"
     if command_exists nix; then
         log "Nix is already installed"
         return
     fi
-    log "Installing Nix (single-user mode)"
+    log "Installing Nix"
     sh <(curl -L https://nixos.org/nix/install) --no-daemon || error "Nix installation failed"
 }
 
 # Configure Nix
 configure_nix() {
-    section "Configuring Nix (Enabling Flakes)"
     if [ -f "$NIX_PROFILE" ]; then
         log "Sourcing Nix profile"
         . "$NIX_PROFILE"
@@ -215,7 +213,6 @@ configure_nix() {
 
 # Install and configure home-manager
 install_home_manager() {
-    section "Installing Home-Manager (via Nix Flakes)"
     if [ -f "$HM_DIR/flake.nix" ]; then
         log "home-manager is already initialized"
     else
@@ -223,17 +220,18 @@ install_home_manager() {
         nix run home-manager -- init || error "home-manager initialization failed"
     fi
 
-    log "Syncing home-manager configuration from $HM_FLAKE_DIR"
-    cp -rv "$HM_FLAKE_DIR"/* "$HM_DIR/"  # Uncommented and fixed; adjust if needed
-    # Example: cp "$SCRIPT_DIR/../../ghostty/config" "$CONFIG_DIR/ghostty/config"
+    log "Syncing home-manager configuration..."
+    # -a: giữ nguyên thuộc tính, -v: hiển thị, -T: coi dest là thư mục
+    # cp -rv "../../home-manager" "$HM_DIR/"
+    # cp "../../ghostty/config" "$CONFIG_DIR/ghostty/config"
 }
 
 # Apply home-manager
 apply_home_manager() {
-    section "Applying Home-Manager Configuration"
     if [ -f "$HM_DIR/home.nix" ]; then
-        log "Switching to new home-manager config"
-        nix run home-manager --show-trace -- switch --flake "$HM_FLAKE_DIR" || error "home-manager apply failed"
+        log "Applying home-manager configuration"
+        # nix run home-manager --show-trace -- switch --flake "$HM_DIR" || error "home-manager apply failed"
+        nix run home-manager --show-trace -- switch --flake "../../home-manager" || error "home-manager apply failed"
     else
         log "home.nix not found; skipping home-manager activation"
     fi
@@ -241,7 +239,7 @@ apply_home_manager() {
 
 # Remove Nix and home-manager
 remove_nix() {
-    section "Removing Nix and Home-Manager"
+    log "Removing Nix and home-manager"
     local dirs=(
         ~/.nix-profile ~/.nix ~/.nix-channels ~/.nix-defexpr
         ~/.config/nix ~/.config/home-manager
@@ -264,89 +262,104 @@ remove_nix() {
             log "No Nix shell integration in $shell"
         fi
     done
-    # For multi-user installs: /nix/nix-installer uninstall (if applicable)
 }
 
-# Install Docker
 install_docker() {
-    section "Installing Docker"
-    if command_exists docker; then
-        log "Docker is already installed. Skipping..."
-        return
+    # KIỂM TRA: Nếu lệnh 'docker' đã tồn tại, thoát hàm luôn
+    if command -v docker &> /dev/null; then
+        echo "⏭️  Docker is already installed. Skipping..."
+        return 0
     fi
 
+    echo "--- Installing Docker Official ---"
+    
+    # 1. Thu thập thông tin hệ thống
     local DISTRO=$(lsb_release -is | tr '[:upper:]' '[:lower:]')
     local CODENAME=$(lsb_release -cs)
     local KEYRING="/etc/apt/keyrings/docker.gpg"
 
+    # 2. Cài đặt các gói phụ trợ (silent mode)
     sudo apt-get update -qq
     sudo apt-get install -y -qq ca-certificates curl gnupg > /dev/null
 
+    # 3. Xử lý GPG Key
     sudo mkdir -p -m 0755 /etc/apt/keyrings
     curl -fsSL "https://download.docker.com/linux/$DISTRO/gpg" | sudo gpg --dearmor --yes -o "$KEYRING"
     sudo chmod a+r "$KEYRING"
 
+    # 4. Thêm Repository
     echo "deb [arch=$(dpkg --print-architecture) signed-by=$KEYRING] https://download.docker.com/linux/$DISTRO $CODENAME stable" | \
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    pm update -qq
-    pm install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
+    # 5. Cài đặt Engine (Chỉ cài những cái thực sự cần)
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
 
+    # 6. Cấp quyền User
     sudo usermod -aG docker "$USER"
+
+    # 7. Quản lý Service (Dùng --now để gộp start và enable)
     sudo systemctl enable --now docker > /dev/null 2>&1
 
-    log "✅ Docker installed successfully."
-    log "⚠️  To use docker without sudo, log out and back in."
+    echo "✅ Docker installed successfully."
+    echo "⚠️  IMPORTANT: To use docker without sudo, please REBOOT or LOG OUT and LOG IN again."
+
+    # Install docker Docker-OSX
+    # docker run -it \
+    #     --device /dev/kvm \
+    #     -p 50922:22 \
+    #     -p 5900:5900 \
+    #     -e "NODISPLAY=true" \
+    #     sickcodes/docker-osx:latest
+
+    # docker build -t docker-osx .
 }
 
-# Install QEMU/KVM
 install_qemu_kvm() {
-    section "Installing QEMU/KVM and Libvirt"
-    if command_exists virsh; then
-        log "QEMU-KVM/Libvirt is already installed. Skipping..."
-        return
+    # KIỂM TRA: Nếu đã có lệnh virsh (quản lý máy ảo) thì coi như đã cài
+    if command -v virsh &> /dev/null; then
+        echo "⏭️  QEMU-KVM/Libvirt is already installed. Skipping..."
+        return 0
     fi
 
-    install_apt_packages $QEMU_PKGS
+    # 1. Gọi hàm cài đặt apt hiện có của bạn
+    install_apt_packages "$QEMU_PKGS"
 
-    log "Configuring permissions..."
+    log "Configuring QEMU-KVM permissions..."
+    
+    # 2. Thêm user vào group để dùng được KVM mà không cần sudo
+    # $USER là user hiện tại đang chạy script
     sudo usermod -aG libvirt "$USER"
     sudo usermod -aG kvm "$USER"
 
+    # 3. Kích hoạt libvirtd service
     sudo systemctl enable --now libvirtd
 
-    if command_exists kvm-ok; then
-        kvm-ok || log "Warning: KVM acceleration not supported or not enabled in BIOS."
+    # 4. Kiểm tra xem KVM có thực sự chạy được trên CPU này không
+    if command -v kvm-ok &> /dev/null; then
+        kvm-ok || log "Warning: KVM acceleration is not supported or not enabled in BIOS."
     fi
 
-    log "✅ QEMU-KVM setup complete. Relogin for group changes."
+    log "✅ QEMU-KVM setup complete. You might need to relogin for group changes."
 }
 
 # Main installation function
 install_all() {
-    install_nala  # Early for speed
     update_system
-    install_apt_packages $APT_PKGS
-    install_nvidia_drivers
+    install_nala
+    install_apt_packages "$APT_PKGS"
     install_timeshift
     install_ansible
-    install_docker
     install_flatpak
+    install_snap
+    install_docker
     install_nix
     configure_nix
     install_home_manager
     apply_home_manager
     install_qemu_kvm
-    install_apt_packages $FLUTTER_PKGS
-}
-
-# Help message
-show_help() {
-    echo "Usage: $0 [install|remove|help]"
-    echo "  install: Install all tools (default)"
-    echo "  remove: Remove Pritunl and Nix/Home-Manager"
-    echo "  help: Show this message"
-    exit 0
+    install_apt_packages "$FLUTTER_PKGS"
+    install_nvidia_drivers
 }
 
 # Main logic
@@ -358,9 +371,6 @@ case "$1" in
     remove)
         remove_pritunl
         remove_nix
-        ;;
-    help)
-        show_help
         ;;
     *)
         install_all
