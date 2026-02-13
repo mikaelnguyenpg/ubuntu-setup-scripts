@@ -15,14 +15,14 @@ in {
   # =============================================================================
   #                            GRAPHICS & DRIVERS
   # =============================================================================
-  targets.genericLinux.enable = true;
-  targets.genericLinux.nixGL = {
-    packages = nixGL.packages; # Import nixGL package set
-    defaultWrapper = "mesa"; # Use Mesa for Intel/AMD or Nouveau
-    installScripts = ["mesa"]; # Install nixGLMesa script
-    # defaultWrapper = "nvidia"; # Use Nvidia proprietary driver
-    # nvidiaVersion = "580.126.09"; # Matches your nvidia-smi output
-    # installScripts = [ "nvidia" ]; # Install nixGLNvidia script
+  targets.genericLinux = {
+    enable = true;
+
+    nixGL = {
+      packages = nixGL.packages; # Import nixGL package set
+      defaultWrapper = "mesa";   # Use Mesa for Intel/AMD or Nouveau
+      installScripts = ["mesa"]; # Install nixGLMesa script
+    };
   };
 
   home.packages = nixGLApps;

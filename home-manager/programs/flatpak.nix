@@ -43,7 +43,7 @@ in {
       ${pkgs.flatpak}/bin/flatpak install --user -y flathub com.google.Chrome
       ${pkgs.flatpak}/bin/flatpak install --user -y flathub com.github.dail8859.NotepadNext
       # ${pkgs.flatpak}/bin/flatpak install --user -y flathub io.httpie.Httpie
-      ${pkgs.flatpak}/bin/flatpak install --user -y flathub com.obsproject.Studio
+      # ${pkgs.flatpak}/bin/flatpak install --user -y flathub com.obsproject.Studio
       ${pkgs.flatpak}/bin/flatpak install --user -y flathub org.keepassxc.KeePassXC
       ${pkgs.flatpak}/bin/flatpak install --user -y flathub io.github.dvlv.boxbuddyrs
     '';
