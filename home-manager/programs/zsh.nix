@@ -48,6 +48,9 @@
       yz     = "yazi";
       zj     = "zellij";
 
+      ## Try nix-shell
+      try-ytdlp = "nix-shell -p yt-dlp";
+
       # --- Interactive Search & Edit ---
       # Tìm file nhanh và mở bằng Helix (với preview từ bat)
       hf     = "hx $(fd --type f | fzf --preview 'bat --color=always {}')";

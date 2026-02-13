@@ -19,6 +19,7 @@ APT_PKGS="curl build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev 
 QEMU_PKGS="qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virt-manager"
 FLUTTER_PKGS="ninja-build pkg-config libgtk-3-dev libstdc++-12-dev libopencv-dev"  # Included commented ones: clang cmake
 FLATPAK_APPS=""
+TAURI_PKGS="libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev"
 
 # Logging
 log() { printf "[INFO] %s\n" "$1"; }
@@ -93,7 +94,7 @@ install_nvidia_drivers() {
     if ! is_apt_installed nvidia-driver; then  # Check for any nvidia-driver
         log "Auto-installing recommended NVIDIA driver"
         # pm install -y --install-recommends ubuntu-drivers-common
-        pm install -y nvidia-driver-580
+        # pm install -y nvidia-driver-580
         sudo ubuntu-drivers install
     else
         log "NVIDIA drivers already installed"
@@ -338,6 +339,7 @@ install_all() {
     apply_home_manager
     install_qemu_kvm
     install_apt_packages $FLUTTER_PKGS
+    install_apt_packages $TAURI_PKGS
 }
 
 # Help message
@@ -370,3 +372,33 @@ esac
 
 log "Installation complete. Log out and back in for group changes to take effect."
 exit 0
+
+
+npm create tauri-app@latest
+cd my-app
+npm install
+npm run tauri dev
+
+npx create-next-app@latest my-tauri-app
+npx tauri init
+
+sudo apt update
+sudo apt install -y libpango-1.0-0
+sudo apt install -y libgtk-3-0 libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0
+sudo ldconfig
+npm run tauri dev
+
+sudo apt update
+sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+
+sudo apt purge '^nvidia-.*'
+sudo apt autoremove
+sudo apt autoclean
+
+ubuntu-drivers devices
+sudo ubuntu-drivers install
+sudo reboot
+sudo prime-select nvidia
+
+
+

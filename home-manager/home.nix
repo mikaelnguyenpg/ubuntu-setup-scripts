@@ -22,6 +22,9 @@ let
       tldr           # hướng dẫn lệnh ngắn gọn
       lsd            # ls đẹp hơn
       xclip          # clipboard CLI
+
+      duf
+      ncdu
     ];
 
     nerdFonts = [
@@ -66,7 +69,7 @@ let
     # 3. Editors / IDEs / code editors
     # ────────────────────────────────────────────────────────────────
     editors = [
-      jetbrains.webstorm
+      # jetbrains.webstorm
     ];
 
     # ────────────────────────────────────────────────────────────────
@@ -74,21 +77,22 @@ let
     # ────────────────────────────────────────────────────────────────
     dev = [
       # Node ecosystem
-      bun
-      deno
-      nodePackages.nodejs
-      yarn
-      vite
-      typescript
-      eslint
-      vscode-js-debug
+      # bun
+      # deno
+      # nodePackages.nodejs
+      # yarn
+      # vite
+      # typescript
+      # eslint
+      # vscode-js-debug
 
       # Python
       uv
 
       # Rust
-      rustup
-      wasm-pack
+      # rustup
+      # wasm-pack
+      # nix-ld
 
       # C/C++
       clang
@@ -96,7 +100,7 @@ let
 
       # Others
       marksman           # Markdown LSP
-      bazel              # cho Mediapipe hoặc build lớn
+      # bazel              # cho Mediapipe hoặc build lớn
       # dprint           # code formatter
       # flutter          # nếu dùng Flutter
       # dart
@@ -127,8 +131,8 @@ let
     # 7. NixGL wrapped apps (cần chạy GUI với nixGL)
     # ────────────────────────────────────────────────────────────────
     nixGLApps = [
-      # (config.lib.nixGL.wrap ghostty)
-      (config.lib.nixGL.wrap neovide)
+      (config.lib.nixGL.wrap ghostty)
+      # (config.lib.nixGL.wrap neovide)
       # (config.lib.nixGL.wrap notepadqq)
       # (config.lib.nixGL.wrap jetbrains.webstorm)
     ];
@@ -147,31 +151,6 @@ let
       ++ officeUtils
       ++ nixGLApps;
   };
-
-  # ---------------------------------------------------------------------------
-  # FLATPAK APPLICATIONS
-  # ---------------------------------------------------------------------------
-  flatpakPackages = [
-    # Example: { appId = "org.telegram.desktop"; origin = "flathub"; }
-    { appId = "com.github.tchx84.Flatseal"; origin = "flathub"; }
-    { appId = "app.zen_browser.zen"; origin = "flathub"; }
-    { appId = "com.google.Chrome"; origin = "flathub"; }
-    { appId = "org.signal.Signal"; origin = "flathub"; }
-    { appId = "md.obsidian.Obsidian"; origin = "flathub"; }
-    { appId = "com.github.dail8859.NotepadNext"; origin = "flathub"; }
-    { appId = "io.httpie.Httpie"; origin = "flathub"; }
-    { appId = "org.libreoffice.LibreOffice"; origin = "flathub"; }
-    { appId = "com.obsproject.Studio"; origin = "flathub"; }
-    { appId = "org.keepassxc.KeePassXC"; origin = "flathub"; }
-    { appId = "io.github.dvlv.boxbuddyrs"; origin = "flathub"; }
-    
-    # { appId = "org.gnome.World.Iotas"; origin = "flathub"; }
-    { appId = "io.github.mfat.jottr"; origin = "flathub"; }
-    { appId = "org.kde.kclock"; origin = "flathub"; }
-    # { appId = "org.jousse.vincent.Pomodorolm"; origin = "flathub"; }
-    # { appId = "com.github.johnfactotum.QuickLookup"; origin = "flathub"; }
-    # { appId = "xyz.safeworlds.hiit"; origin = "flathub"; }
-  ];
 in {
   # =============================================================================
   #                            HOME-MANAGER CORE
@@ -198,6 +177,7 @@ in {
   # Imported programs
   imports = [
     ./programs/eza.nix
+    ./programs/flatpak.nix
     ./programs/fzf.nix
     ./programs/git.nix
     ./programs/ghostty.nix
@@ -205,7 +185,7 @@ in {
     ./programs/starship.nix
     ./programs/tmux.nix
     ./programs/vscode.nix
-    ./programs/ytdlp.nix
+    # ./programs/ytdlp.nix
     ./programs/zoxide.nix
     ./programs/zsh.nix
     ./programs/zellij.nix
@@ -217,12 +197,11 @@ in {
   # =============================================================================
   targets.genericLinux.enable = true;
   targets.genericLinux.nixGL = {
-  # nixGL = {
     packages = nixGL.packages; # Import nixGL package set
     defaultWrapper = "mesa"; # Use Mesa for Intel/AMD or Nouveau
     installScripts = ["mesa"]; # Install nixGLMesa script
     # defaultWrapper = "nvidia"; # Use Nvidia proprietary driver
-    # nvidiaVersion = "570.133.07"; # Matches your nvidia-smi output
+    # nvidiaVersion = "580.126.09"; # Matches your nvidia-smi output
     # installScripts = [ "nvidia" ]; # Install nixGLNvidia script
   };
 
@@ -238,9 +217,6 @@ in {
   home.sessionVariables = {
     EDITOR = "hx";
 
-    # Dùng fd để tìm file nhanh hơn và bỏ qua file ẩn/git
-    # FZF_DEFAULT_COMMAND = "fd --type f --strip-cwd-prefix --hidden --follow --exclude .git";
-    # FZF_CTRL_T_COMMAND = "$FZF_DEFAULT_COMMAND";
     # Use eza to preview directories when using zoxide's interactive mode
     _ZO_FZF_OPTS = "--preview 'eza --tree --color=always --level=2 {} | head -200'";
 
@@ -250,17 +226,14 @@ in {
     # Flutter / Android
     ANDROID_HOME = "$HOME/Android/Sdk";
     ANDROID_AVD_HOME = "$HOME/.var/app/com.google.AndroidStudio/config/.android/avd/";
-
-    # Nix profile (giữ nguyên)
-    # XDG_DATA_DIRS = "$HOME/.nix-profile/share:$XDG_DATA_DIRS";
   };
 
   # =============================================================================
   #                            ACTIVATION SCRIPTS
   # =============================================================================
   home.activation = {
-    initialize-nvim = lib.hm.dag.entryAfter ["installPackages"] ''
-      echo "Initializing LazyVim configuration..."
+    initializeNvim = lib.hm.dag.entryAfter ["installPackages"] ''
+      echo " - Initializing LazyVim Configuration..."
       if [ ! -d "$HOME/.config/nvim" ]; then
         ${pkgs.git}/bin/git clone --depth=1 "${constants.lazyvimRepo}" "$HOME/.config/nvim"
       else
@@ -278,30 +251,12 @@ in {
     # Name: Flameshot
     # Command: bash -c -- "flameshot gui > /dev/null"
     # Shortcut: Fn + screenshot
-
-    # Enable Flatpak management
-    flatpak = {
-      enable = true;
-      remotes = [
-        { name = "flathub"; location = "https://flathub.org/repo/flathub.flatpakrepo"; }
-      ];
-      # Optional: Add Flatpak apps here (see "How to Use" below)
-      packages = flatpakPackages;
-      uninstallUnmanaged = false; # true: Remove apps not in package list; false: Keep existed
-    };
   };
 
   fonts.fontconfig.enable = true;
 
   # Dotfiles
   home.file = {
-    # ".config/ghostty/config" = {
-    #   text = ''
-    #     theme = catppuccin-mocha
-    #     font-family = FiraCode Nerd Font
-    #     ...
-    #     '';
-    # };
   };
 
   # =============================================================================
@@ -313,6 +268,7 @@ in {
       enable            = true; # tự động nạp env params
       nix-direnv.enable = true; # tự động nạp env
     };
+    # nix-ld.enable  = true;
 
     cmus.enable    = true;
 
@@ -324,19 +280,4 @@ in {
     yazi.enable    = true;
     # yt-dlp.enable = true;
   };
-
-  # Tùy biến lại file desktop để sửa lỗi Dashboard
-  # xdg.desktopEntries."com.mitchellh.ghostty" = {
-  #   name = "Ghostty";
-  #   genericName = "Terminal Emulator";
-  #   # Sử dụng đường dẫn symlink ổn định
-  #   exec = "/home/eagle/.nix-profile/bin/ghostty --gtk-single-instance=true";
-  #   icon = "com.mitchellh.ghostty";
-  #   terminal = false;
-  #   categories = [ "System" "TerminalEmulator" ];
-  #   # QUAN TRỌNG: Vô hiệu hóa D-Bus Activation
-  #   settings = {
-  #     DBusActivatable = "false";
-  #   };
-  # };
 }

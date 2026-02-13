@@ -19,7 +19,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      username = "eagle";
+      username = "codevibe";
     in {
       homeConfigurations."${username}" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
