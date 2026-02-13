@@ -1,4 +1,4 @@
-{ config, pkgs, lib, nixGL, ... }:
+{ config, pkgs, lib, ... }:
 
 # =============================================================================
 #                                 PREAMBLE
@@ -128,16 +128,6 @@ let
     ];
 
     # ────────────────────────────────────────────────────────────────
-    # 7. NixGL wrapped apps (cần chạy GUI với nixGL)
-    # ────────────────────────────────────────────────────────────────
-    nixGLApps = [
-      (config.lib.nixGL.wrap ghostty)
-      # (config.lib.nixGL.wrap neovide)
-      # (config.lib.nixGL.wrap notepadqq)
-      # (config.lib.nixGL.wrap jetbrains.webstorm)
-    ];
-
-    # ────────────────────────────────────────────────────────────────
     # Tổng hợp tất cả (dễ comment/uncomment từng nhóm)
     # ────────────────────────────────────────────────────────────────
     all = coreCli
@@ -148,8 +138,7 @@ let
       ++ editors
       ++ dev
       ++ media
-      ++ officeUtils
-      ++ nixGLApps;
+      ++ officeUtils;
   };
 in {
   # =============================================================================
@@ -182,6 +171,7 @@ in {
     ./programs/git.nix
     ./programs/ghostty.nix
     ./programs/helix.nix
+    ./programs/nixGL.nix
     ./programs/starship.nix
     ./programs/tmux.nix
     ./programs/vscode.nix
@@ -191,19 +181,6 @@ in {
     ./programs/zellij.nix
     # Thêm các file module khác tại đây
   ];
-
-  # =============================================================================
-  #                            GRAPHICS & DRIVERS
-  # =============================================================================
-  targets.genericLinux.enable = true;
-  targets.genericLinux.nixGL = {
-    packages = nixGL.packages; # Import nixGL package set
-    defaultWrapper = "mesa"; # Use Mesa for Intel/AMD or Nouveau
-    installScripts = ["mesa"]; # Install nixGLMesa script
-    # defaultWrapper = "nvidia"; # Use Nvidia proprietary driver
-    # nvidiaVersion = "580.126.09"; # Matches your nvidia-smi output
-    # installScripts = [ "nvidia" ]; # Install nixGLNvidia script
-  };
 
   # =============================================================================
   #                            ENVIRONMENT & PATH
