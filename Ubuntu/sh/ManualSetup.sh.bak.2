@@ -1,0 +1,130 @@
+#!/bin/bash
+
+# Dừng script nếu có lỗi
+set -e
+
+# ==========================================================
+# 1. KHAI BÁO CÁC MẢNG CÔNG CỤ (Dễ dàng thêm/xóa/sửa)
+# ==========================================================
+
+# Công cụ hệ thống cơ bản
+ESSENCES=(
+    build-essential curl wget git unzip 
+    software-properties-common ubuntu-restricted-extras
+)
+
+# Công cụ giám sát & đĩa
+UTILS=(htop gparted net-tools)
+
+# Giao diện Gnome
+GNOME_TOOLS=(gnome-tweaks gnome-shell-extensions)
+
+# Bộ gõ tiếng Việt/Trung
+KEYBOARDS=(ibus-unikey ibus-chewing)
+
+# Dependencies cho Tauri (Lập trình Desktop)
+TAURI_DEPS=(
+    libwebkit2gtk-4.1-dev build-essential curl wget 
+    file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+)
+
+# ==========================================================
+# 2. HÀM XỬ LÝ CÀI ĐẶT (Core Logic)
+# ==========================================================
+
+is_apt_installed() {
+    dpkg -s "$1" &> /dev/null
+}
+
+install_packages() {
+    local -n pkgs=$1
+    local to_install=()
+
+    for pkg in "${pkgs[@]}"; do
+        if ! is_apt_installed "$pkg"; then
+            to_install+=("$pkg")
+        fi
+    done
+
+    echo "------------------------------------------"
+    if [ ${#to_install[@]} -gt 0 ]; then
+        echo "🚀 Đang cài đặt nhóm: ${to_install[*]}"
+        sudo apt install -y "${to_install[@]}"
+    else
+        echo "✅ Nhóm $1 đã cài đặt đầy đủ. Bỏ qua."
+    fi
+}
+
+# ==========================================================
+# 3. THỰC THI (Muốn bỏ phần nào chỉ cần comment dòng đó)
+# ==========================================================
+
+# Cập nhật list 1 lần duy nhất
+echo "🔄 Cập nhật danh sách gói..."
+sudo apt update -qq
+
+# --- Cài đặt các gói APT ---
+install_packages ESSENCES
+install_packages UTILS
+install_packages GNOME_TOOLS
+install_packages KEYBOARDS
+install_packages TAURI_DEPS
+
+# --- Cấu hình Git & SSH ---
+echo "------------------------------------------"
+if ! git config --global --get user.name >/dev/null; then
+    echo "⚙️ Thiết lập Git config..."
+    git config --global user.name "mikaelnguyenpg"
+    git config --global user.email "mikaelnguyen.pg@gmail.com"
+else
+    echo "✅ Git config đã tồn tại (User: $(git config --global user.name) - Email: $(git config --global user.email))."
+fi
+
+echo "------------------------------------------"
+if [[ ! -f "$HOME/.ssh/id_rsa" ]]; then
+    echo "🔑 Tạo SSH key mới..."
+    ssh-keygen -t rsa -b 4096 -C "mikaelnguyen.pg@gmail.com" -N "" -f "$HOME/.ssh/id_rsa"
+else
+    echo "✅ ssh-key đã tồn tại."
+fi
+
+# --- Cài đặt Docker ---
+echo "------------------------------------------"
+if ! command -v docker &> /dev/null; then
+    echo "🐳 Đang cài Docker..."
+    sudo apt install -y docker.io docker-compose
+    sudo usermod -aG docker "$USER"
+else
+    echo "✅ Docker đã sẵn sàng."
+fi
+
+# --- Cài đặt NVM & Node ---
+echo "------------------------------------------"
+export NVM_DIR="$HOME/.nvm"
+if [[ ! -d "$HOME/.nvm" ]]; then
+    echo "🟢 Đang cài NVM..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+fi
+
+# Load NVM tạm thời để chạy lệnh node
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+if ! command -v node >/dev/null 2>&1; then
+    echo "🟢 Đang cài Node 24..."
+    nvm install 24
+else
+    echo "✅ Node $(node -v) đã sẵn sàng."
+fi
+
+# --- Cài đặt Rust ---
+echo "------------------------------------------"
+if ! command -v rustc &> /dev/null; then
+    echo "🦀 Đang cài Rust..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+else
+    echo "✅ Rust đã sẵn sàng."
+fi
+
+echo "------------------------------------------"
+echo "🚀🚀 Hoàn tất! Vui lòng khởi động lại máy để cập nhật quyền Docker."
+

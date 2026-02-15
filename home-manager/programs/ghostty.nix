@@ -1,10 +1,13 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, nixGL, ... }:
 
 {
   # Zoxide: The smarter 'cd'
   programs.ghostty = {
     enable = true;
     enableZshIntegration = true;
+    # QUAN TRỌNG: Bảo Ghostty dùng bản đã wrap nixGL thay vì bản gốc
+    package = config.lib.nixGL.wrap pkgs.ghostty; 
+
     settings = {
        # --- Giao diện ---
        theme = "TokyoNight"; # Hoặc tên bất kỳ bạn tìm thấy trong ghostty +list-themes

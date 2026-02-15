@@ -5,7 +5,6 @@ let
     # 7. NixGL wrapped apps (cần chạy GUI với nixGL)
     # ────────────────────────────────────────────────────────────────
     nixGLApps = [
-      # (config.lib.nixGL.wrap ghostty)
       # (config.lib.nixGL.wrap neovide)
       # (config.lib.nixGL.wrap notepadqq)
       # (config.lib.nixGL.wrap jetbrains.webstorm)
@@ -19,7 +18,7 @@ in {
     enable = true;
 
     nixGL = {
-      packages = nixGL.packages; # Import nixGL package set
+      packages = nixGL.packages.${pkgs.system}; # Import nixGL package set
       defaultWrapper = "mesa";   # Use Mesa for Intel/AMD or Nouveau
       installScripts = ["mesa"]; # Install nixGLMesa script
     };

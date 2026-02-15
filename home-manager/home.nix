@@ -87,7 +87,7 @@ let
       # vscode-js-debug
 
       # Python
-      uv
+      # uv
 
       # Rust
       # rustup
@@ -95,11 +95,11 @@ let
       # nix-ld
 
       # C/C++
-      clang
-      cmake
+      # clang
+      # cmake
 
       # Others
-      marksman           # Markdown LSP
+      # marksman           # Markdown LSP
       # bazel              # cho Mediapipe hoặc build lớn
       # dprint           # code formatter
       # flutter          # nếu dùng Flutter
@@ -115,7 +115,7 @@ let
     # ────────────────────────────────────────────────────────────────
     media = [
       cava
-      cmus
+      # cmus
       vlc
       # yt-dlp
     ];
@@ -136,7 +136,7 @@ let
       ++ qemuTools
       ++ funTerminal
       ++ editors
-      ++ dev
+      # ++ dev
       ++ media
       ++ officeUtils;
   };
@@ -248,6 +248,5 @@ in {
     ripgrep.enable = true; # grep nhanh hơn
     vim.enable     = true;
     yazi.enable    = true;
-    # yt-dlp.enable = true;
   };
 }
