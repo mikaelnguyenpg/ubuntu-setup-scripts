@@ -22,8 +22,15 @@ let
     openssl           # Xử lý bảo mật, mã hóa HTTPS/SSL
   ];
 
+  # 3. NHÓM ĐỒ HỌA
+  graphic-libs = with pkgs; [
+    libcanberra-gtk3  # FIX: Thêm cái này để hết lỗi canberra-gtk-module
+    libglvnd          # FIX: Thư viện điều phối Vendor OpenGL
+    mesa              # FIX: Driver OpenGL/EGL
+  ];
+
   # Tổng hợp tất cả thư viện runtime
-  libraries = ui-libs ++ system-libs;
+  libraries = ui-libs ++ system-libs ++ graphic-libs;
 
 in {
   # 3. NHÓM CÔNG CỤ BIÊN DỊCH (Build Tools)

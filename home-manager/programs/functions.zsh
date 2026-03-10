@@ -506,3 +506,27 @@ docker-mac() {
         docker start -ai "$container_name"
     fi
 }
+
+distro-create() {
+  local name=$1
+  distrobox create --name "$name" \
+    --image ubuntu:25.10 \
+    --additional-flags "-v /nix:/nix:ro" \
+    --volume /data:/data \
+    --home ~/40_Programs/distrobox/$name
+}
+
+distro-clone() {
+  local name=$1
+  local source=$2
+  distrobox create --name "$name" --clone "$source" \
+    --additional-flags "-v /nix:/nix:ro" \
+    --volume /data:/data \
+    --home ~/40_Programs/distrobox/$name
+}
+# distrobox create --name tauri-dev --image ubuntu:22.04 --volume /data:/data
+# distrobox create --name tauri-dev --image ubuntu:22.04 --volume /data:/data --home ~/20_Workspace
+# distrobox create --name tauri-dev --image ubuntu:22.04 --volume /data:/data --additional-flags "-v /nix:/nix:ro"
+# distrobox create --name tauri-dev --image ubuntu:22.04 --home ~/20_Workspace --additional-flags "-v /data:/data -v /nix:/nix:ro"
+# distrobox enter tauri-dev
+# export TERM=xterm-256color

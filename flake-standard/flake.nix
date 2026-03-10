@@ -24,7 +24,7 @@
             echo "🚀 Multi-language Dev Environment Loaded!"
             echo "Node version: $(node -v)"
             echo "Npm version: $(npm -v)"
-            echo "Uv version: $(node -v)"
+            echo "Uv version: $(uv --version)"
             echo "Python version: $(python --version)"
 
             ${rustModule.shellHook}

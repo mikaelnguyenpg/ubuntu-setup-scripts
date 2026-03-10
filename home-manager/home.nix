@@ -42,7 +42,9 @@ let
 
     qemuTools = [
       qemu        # Phiên bản QEMU mới nhất từ Nix
+      libvirt
       quickemu    # Tool cực hay để tạo nhanh máy ảo Linux/Windows/macOS
+      virt-manager
       virt-viewer # Để xem màn hình máy ảo
       # IMPORTANT: MÁY ẢO cần cài thêm
       # `sudo apt install spice-vdagent`
