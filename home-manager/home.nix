@@ -41,11 +41,13 @@ let
     ];
 
     qemuTools = [
-      qemu        # Phiên bản QEMU mới nhất từ Nix
-      libvirt
-      quickemu    # Tool cực hay để tạo nhanh máy ảo Linux/Windows/macOS
-      virt-manager
-      virt-viewer # Để xem màn hình máy ảo
+      distrobox           # Chạy các distro khác (Fedora/Arch) trong container
+      podman-compose      # Thay thế Docker Compose
+      qemu                # Emulator cho VM
+      libvirt             # API quản lý ảo hóa
+      virt-manager        # GUI cho VM (nếu cần chạy từ CLI)
+      virt-viewer         # Để xem màn hình máy ảo
+      quickemu            # Tool cực hay để tạo nhanh máy ảo Linux/Windows/macOS
       # IMPORTANT: MÁY ẢO cần cài thêm
       # `sudo apt install spice-vdagent`
       # `sudo systemctl restart spice-vdagent`
@@ -223,6 +225,7 @@ in {
     # Name: Flameshot
     # Command: bash -c -- "flameshot gui > /dev/null"
     # Shortcut: Fn + screenshot
+    podman.enable = true;
   };
 
   fonts.fontconfig.enable = true;
